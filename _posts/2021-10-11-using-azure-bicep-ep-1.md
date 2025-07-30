@@ -3,7 +3,9 @@ title: "Using Azure Bicep EP-1"
 date: 2021-10-11
 categories: 
   - "azure"
+media_subpath: "/_posts/"
 ---
+
 
 Recently I got to chance to work with Azure Bicep. I previously had experience with ARM templates. My first impression to Bicep was "WOW", It seems pretty cool and I started enjoying scripting with Bicep, but there were some moments that I felt some bad feelings. All in all its pretty awesome :)
 
