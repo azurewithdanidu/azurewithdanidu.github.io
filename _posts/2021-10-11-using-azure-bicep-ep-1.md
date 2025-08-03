@@ -3,7 +3,6 @@ title: "Using Azure Bicep EP-1"
 date: 2021-10-11
 categories: 
   - "azure"
-media_subpath: "/_posts/"
 ---
 
 
