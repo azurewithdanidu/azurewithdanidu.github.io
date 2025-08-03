@@ -229,6 +229,6 @@ If you want to use my above example, feel free to visit my GitHub link to get th
 
 From my Github you can directly deploy this solution to Azure
 
-[![](images/AVvXsEgzBLYyK6kzhAVli315jZPPSiIRK5dhhkBtYnmUJ6zhNzOO5AfpQetzflvMz9SkSjB3UEidn3TDwNOrgb4XQ7Rwrgief7sSDTTm8Gg30M1TEosXoh2u3DicQVzbmlht0be-nepBtY9mdo3Cnxz6suw8CGXjcSy3LX1UoviUczFaPYP9xltzW6dg4XRy_Q)](https://www.blogger.com/blog/post/edit/3493680135498724763/4622269941536829457?hl=en#)
+*[Image showing Azure deployment button - currently unavailable]*
 
 Hope this helps...:D Until next time (Y)

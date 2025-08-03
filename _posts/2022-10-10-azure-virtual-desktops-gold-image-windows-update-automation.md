@@ -149,6 +149,7 @@ packer tempalate has 3 sections
 5. Provisioners - Tasks to perform ontop of the build vm
 
 ```
+{% raw %}
 {
   "variables": {
     "client_id": "",
@@ -254,6 +255,7 @@ packer tempalate has 3 sections
     }
   ]
 }
+{% endraw %}
 ```
 
 In my above packer json template I use 3 passes to install the windows update and restart the image vm automatically. And generalize the VM template before it save in the azure compute gallary.
