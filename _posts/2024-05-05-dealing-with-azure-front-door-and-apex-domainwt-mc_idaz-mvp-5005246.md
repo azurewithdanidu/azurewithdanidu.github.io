@@ -20,7 +20,7 @@ It's being couple of months that I blogged about a solution. This time it's all 
 
 ## What is an APEX domain
 
-An APEX domain, in the context of domain name systems (DNS), refers to a root domain that doesn't have any subdomains. It's the top-level domain in a DNS hierarchy. For example, in the domain name "[example.com](http://example.com/)", "example" is the APEX domain, and "com" is the top-level domain (TLD).
+An APEX domain, in the context of domain name systems (DNS), refers to a root domain that doesn't have any subdomains. It's the top-level domain in a DNS hierarchy. For example, in the domain name "[example.com](https://example.com/)", "example" is the APEX domain, and "com" is the top-level domain (TLD).
 
 ## What is the fuss about using APEX domains with Azure Front Door
 

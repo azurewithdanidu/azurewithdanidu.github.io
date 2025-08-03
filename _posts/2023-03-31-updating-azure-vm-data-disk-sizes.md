@@ -29,7 +29,7 @@ If you focus on the green arrow and the purple arrow, basically I'm modifying th
 I have decided to use YML variable files for my bicep modules mainly for one reason, that is because a given parameter needs to be defined only once, we can reuse the variable values anywhere by defining the variable files in the YML pipeline file.  
 So, our related variable is the disk defines as below
 
-![](images/AVvXsEi0xfT8nKjTgNrkQYtadqurm7bdCAPTx_p6mZnnE6OoqDoHB9t7LvMXTtIJY9OXagzxpJC3DeQXtee5C203cCH4E6Y1vNpYV7cRqf_KuGUJDVW_WB769I82I6VHKv09JwOj9Nj5HKllvuIoGcJu-3mV93zlkfoAulGHuASdxi43wE2DrFSEqdovu29Snw=w672-h48)
+*[Image showing YAML variable definitions - currently unavailable]*
 
 [](https://www.blogger.com/blog/post/edit/3493680135498724763/6045070247294416741?hl=en#)
 

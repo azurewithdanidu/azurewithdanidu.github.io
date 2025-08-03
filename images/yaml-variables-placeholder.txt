@@ -1,0 +1,3 @@
+This image showed YAML variable definitions for disk configuration.
+The original image file had a very long Google Photos URL and is no longer available.
+Please refer to the blog post content for the variable structure details.
