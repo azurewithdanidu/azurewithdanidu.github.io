@@ -11,7 +11,7 @@ tags:
   - "infrastructure"
 ---
 
-> NOTE: This blog is backed by GitHub Sample code
+> NOTE: This blog iHub Sample code
 > 
 > [https://github.com/azurewithdanidu/docker-with-azure-batch/tree/main](https://github.com/azurewithdanidu/docker-with-azure-batch/tree/main)
 
