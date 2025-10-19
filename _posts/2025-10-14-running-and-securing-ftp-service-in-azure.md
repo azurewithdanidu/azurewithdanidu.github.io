@@ -33,7 +33,7 @@ Architectures depends on your requirements and your current environment and budg
     *   Configure the Storage Account firewall to restrict access to specific IP addresses or virtual networks.
     *   This is the simplest and most cost-effective solution for secure file transfers.
 
-![alt text](./images/image.png)
+![alt text](./2025-10-14-image.png)
 
 1.  **SFTP Enabled Storage Account with Azure Firewall configuration**:
     *   Use Azure Blob Storage with SFTP enabled for secure file transfers.
@@ -42,22 +42,22 @@ Architectures depends on your requirements and your current environment and budg
     *   This will be a bit more expensive than the first option.
     *   Also this will provide more visibility and control over the traffic.
 
-![alt text](./images/image-1.png)
+![alt text](./2025-10-14-image-1.png)
 
 Okay lets dive into the steps to set up and secure an FTP service in Azure using the first architecture option:
 
 ### Step 1: Create an Azure Storage Account with SFTP Enabled
 When you are creating a new storage account make sure to enable Hierarchical namespace, only then you can use the SFTP feature in storage accounts
-![alt text](image.png)
+![alt text](2025-10-14-image.png)
 
 ### Step 2: Configure SFTP on the Storage Account
 1. Navigate to the Storage Account in the Azure portal.
 2. Under Setting you will find the SFTP option, click on it.
-![alt text](image-1.png)
+![alt text](2025-10-14-image-1.png)
 3. Enable SFTP and configure the required settings, such as authentication methods (SSH keys or password).
 4. Create local users for SFTP access and assign appropriate permissions to the Blob containers.
 Note at the moment you can only create local users, you cannot use Azure AD users for SFTP access.
-![alt text](image-2.png)
+![alt text](2025-10-14-image-2.png)
 As you can see when creating a local user you can select the authentication type, either SSH or password. You can also assign permissions to specific containers in the storage account.
 
 You can find more details about configuring the SFTP feature in the official documentation [here](https://learn.microsoft.com/en-us/azure/storage/blobs/secure-file-transfer-protocol-support?tabs=azure-portal).
@@ -70,7 +70,7 @@ But the most important part is to secure the storage account, so lets move to th
 
 This is where you limit the access to the storage account from specific networks. Specifically, if its outside of your network you can whitlist the IP addresses that can access the storage account.
 
-![alt text](image-3.png)
+![alt text](2025-10-14-image-3.png)
 
 Now lets see how much secure this is or visibility we have into the traffic.
 Pros
@@ -83,7 +83,7 @@ Cons
 1. You cannot inspect the traffic, you can only restrict access based on IP addresses and virtual networks.
 2. This option cannot centralize the entry point for your traffic or force traffic inspection etc.
 3. You can only use local users for SFTP access, you cannot use Azure AD users or managed identities.:(
-![alt text](image-4.png)
+![alt text](2025-10-14-image-4.png)
 
 
 Also if you want set everything up using infrastructure as code, here is a sample Bicep code to create a storage account with SFTP enabled and firewall rules configured:
@@ -203,3 +203,9 @@ output storageAccountId string = storageAccount.outputs.resourceId
 output sftpHostname string = '${storageAccountName}.blob.core.windows.net'
 
 ```
+
+
+This Bicep code creates an Azure Storage Account with SFTP enabled, configures local users for SFTP access, and sets up firewall rules to restrict access based on specified IP addresses. It also creates a Blob container for file uploads.
+
+
+Okay now lets look at our slightly complex architecture using Azure Firewall to secure the storage account. This will be in the next blog post. Stay tuned! 
