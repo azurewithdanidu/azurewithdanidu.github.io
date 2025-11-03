@@ -57,12 +57,6 @@ The pipeline is a compact 147-line PowerShell script embedded in an Azure Pipeli
 
 The pipeline uses Azure DevOps built-in variables to configure itself:
 
-```yaml
-variables:
-  - name: azureDevOpsAutoPat
-    value: $(System.AccessToken)  # Use the build service token
-```
-
 It extracts everything it needs from the pipeline context:
 - Repository URL: `$(Build.Repository.Uri)`
 - Branch: `$(Build.SourceBranchName)`
