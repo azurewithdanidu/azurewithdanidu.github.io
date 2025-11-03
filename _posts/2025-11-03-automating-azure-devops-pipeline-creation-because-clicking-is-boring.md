@@ -335,7 +335,7 @@ If you're managing multiple Azure DevOps pipelines, give this automation a try. 
 
 ## Get the Code
 
-The complete pipeline automation is available in my GitHub repository: [add-azure-devops-pipelines-automatically](https://github.com/azurewithdanidu/add-azure-devops-pipelines-automatically)
+The complete pipeline automation is available in my GitHub repository: [import-azure-devops-pipelines-automatically](https://github.com/azurewithdanidu/import-ado-yml-pipelines-automatically)
 
 The repository includes:
 - The complete `azure-pipelines-creator.yml` automation pipeline
