@@ -1,5 +1,5 @@
 ---
-title: "Building a Centralized WAF Strategy with Azure Front Door Premium and Application Gateway v2 using Azure Verified Modules"
+title: "Building a Centralized WAF Strategy with Azure Front Door Premium and Application Gateway v2"
 date: 2025-11-16
 categories:
   - "azure"
@@ -10,8 +10,6 @@ tags:
   - "azure-front-door"
   - "application-gateway"
   - "bicep"
-  - "avm"
-  - "azure-verified-modules"
   - "private-link"
   - "infrastructure"
 ---
@@ -23,8 +21,6 @@ If you're managing multiple web applications across Azure regions, you've probab
 In this post, I'll walk you through implementing a cost-effective, centralized Web Application Firewall (WAF) strategy using Azure Front Door Premium as your single global security perimeter, backed by Application Gateway Standard_v2 for regional load balancing. This architecture is particularly valuable for organizations with hybrid environments, legacy infrastructure, or multi-region deployments that need comprehensive edge protection without the overhead of managing multiple WAF layers.
 
 But here's the thing - this isn't a silver bullet. Every architecture has trade-offs, and I'll be completely honest about them. The key trade-off here: we're protecting all external traffic at the Front Door edge, but internal traffic (VNet-to-VNet or on-premises-to-Azure) only gets network-level protection from Azure Firewall, not application-level WAF inspection. For most organizations, this is an acceptable compromise that saves significant cost and complexity.
-
-**New in this post**: We're using **Azure Verified Modules (AVM)** for our infrastructure deployment. Why reinvent the wheel when Microsoft provides tested, verified, and actively maintained modules? This means less code to write, fewer bugs to fix, and automatic updates with new features and security patches. You'll see the dramatic difference in code volume and maintainability compared to writing custom Bicep resource definitions.
 
 ## The Challenge: Fragmented WAF Management
 
@@ -140,67 +136,6 @@ Here's what you need to understand: **Internal traffic (VNet-to-VNet and on-prem
 
 If these scenarios apply to you, consider using Application Gateway WAF_v2 instead, accepting the higher cost and performance overhead for the added security.
 
-## Why Azure Verified Modules (AVM)?
-
-Before we dive into implementation, let's talk about why we're using Azure Verified Modules instead of writing custom Bicep resource definitions.
-
-### What Are Azure Verified Modules?
-
-Azure Verified Modules are **Microsoft-verified, tested, and maintained Bicep/Terraform modules** published to the public registry. Think of them as official, production-ready building blocks for your Azure infrastructure.
-
-### The AVM Advantage
-
-**1. Microsoft-verified and supported**: Every AVM module is tested against Microsoft's rigorous standards for security, reliability, and operational excellence. You're not just getting community code - you're getting Microsoft's stamp of approval.
-
-**2. Best practices built-in**: AVM modules implement Azure Well-Architected Framework principles out of the box. Things like diagnostic settings, managed identities, private endpoints, and security configurations are already baked in.
-
-**3. Regular updates**: When Azure releases new features or security patches, AVM modules are updated automatically. You get new capabilities without rewriting your infrastructure code.
-
-**4. Less code to maintain**: Compare writing 400 lines of custom Bicep for Application Gateway vs. calling an AVM module with 50 lines of parameters. Less code means fewer bugs, easier reviews, and faster development.
-
-**5. Consistency across the organization**: Everyone uses the same modules with the same configurations. No more "custom Bicep templates that only Bob understands."
-
-**6. Community-driven**: AVM modules are open-source on GitHub, with contributions from Azure experts worldwide. Issues are tracked, pull requests are reviewed, and improvements flow back to everyone.
-
-### The Code Difference: Custom vs. AVM
-
-**Custom Bicep (old approach)**: 400+ lines defining every property of Application Gateway
-```bicep
-resource appGateway 'Microsoft.Network/applicationGateways@2023-05-01' = {
-  name: appGatewayName
-  location: location
-  properties: {
-    sku: { ... }
-    autoscaleConfiguration: { ... }
-    gatewayIPConfigurations: [ ... ]
-    frontendIPConfigurations: [ ... ]
-    frontendPorts: [ ... ]
-    backendAddressPools: [ ... ]
-    backendHttpSettingsCollection: [ ... ]
-    httpListeners: [ ... ]
-    requestRoutingRules: [ ... ]
-    probes: [ ... ]
-    privateLinkConfigurations: [ ... ]
-    // ... 350 more lines
-  }
-}
-```
-
-**AVM Module (modern approach)**: 50-80 lines passing parameters to a verified module
-```bicep
-module appGateway 'br/public:avm/res/network/application-gateway:0.4.0' = {
-  name: 'appGatewayDeployment'
-  params: {
-    name: appGatewayName
-    location: location
-    sku: 'Standard_v2'
-    // ... focused parameters only
-  }
-}
-```
-
-**The difference?** 80% less code, automatic best practices, and updates from Microsoft.
-
 ## When to Use This Pattern
 
 This architecture shines in these scenarios:
@@ -247,9 +182,9 @@ Let's be real - this architecture isn't always the right choice:
 
 **Startups and MVPs**: If you're building an MVP or startup product, start simple. Add complexity when you need it, not before.
 
-## Implementation Guide: Step-by-Step with AVM
+## Implementation Guide: Step-by-Step
 
-Let's build this thing using Azure Verified Modules. I'll show you how much cleaner and more maintainable this is compared to custom Bicep.
+Let's build this thing. I'll show you the Bicep templates and walk through the deployment process.
 
 ### Prerequisites
 
@@ -260,49 +195,13 @@ Before we start, make sure you have:
 - Basic understanding of Azure networking (VNets, subnets, NSGs)
 - A custom domain (optional but recommended for production)
 
-### Step 0: Configure Bicep for AVM Module Registry
+### Step 1: Deploy Application Gateway Standard_v2
 
-First, create a `bicepconfig.json` file to configure access to the AVM public registry:
+Now let's deploy the Application Gateway for regional load balancing.
 
-```json
-{
-  "moduleAliases": {
-    "br": {
-      "public": {
-        "registry": "mcr.microsoft.com",
-        "modulePath": "bicep"
-      }
-    }
-  },
-  "analyzers": {
-    "core": {
-      "enabled": true,
-      "verbose": false,
-      "rules": {
-        "no-unused-params": {
-          "level": "warning"
-        },
-        "no-unused-vars": {
-          "level": "warning"
-        }
-      }
-    }
-  }
-}
-```
+#### Create the Bicep Template
 
-This configuration:
-- Maps `br/public` to the Microsoft Container Registry where AVM modules are hosted
-- Enables Bicep linting for better code quality
-- Allows you to reference modules like `br/public:avm/res/network/application-gateway:0.4.0`
-
-### Step 1: Deploy Application Gateway Standard_v2 Using AVM
-
-Now let's deploy the Application Gateway using the AVM module. Notice how much cleaner this is compared to writing hundreds of lines of custom Bicep!
-
-#### Create the Bicep Template Using AVM
-
-Create a file named `appgateway-standard-avm.bicep`:
+Create a file named `appgateway-standard.bicep`:
 
 ```bicep
 @description('The name of the Application Gateway')
@@ -342,7 +241,7 @@ param enablePrivateLink bool = true
 @description('The environment name (dev, staging, prod)')
 param environment string = 'dev'
 
-// Deploy Virtual Network using AVM Module
+// Deploy Virtual Network
 module vnet 'br/public:avm/res/network/virtual-network:0.5.2' = {
   name: 'vnetDeployment'
   params: {
@@ -369,7 +268,7 @@ module vnet 'br/public:avm/res/network/virtual-network:0.5.2' = {
   }
 }
 
-// Deploy Public IP using AVM Module
+// Deploy Public IP
 module publicIP 'br/public:avm/res/network/public-ip-address:0.6.0' = {
   name: 'publicIpDeployment'
   params: {
@@ -387,14 +286,14 @@ module publicIP 'br/public:avm/res/network/public-ip-address:0.6.0' = {
   }
 }
 
-// Deploy Application Gateway Standard_v2 using AVM Module
+// Deploy Application Gateway Standard_v2
 module appGateway 'br/public:avm/res/network/application-gateway:0.4.0' = {
   name: 'appGatewayDeployment'
   params: {
     name: appGatewayName
     location: location
 
-    // SKU Configuration - Standard_v2, NOT WAF_v2 (cost optimization)
+    // SKU Configuration - Standard_v2 for cost optimization
     sku: 'Standard_v2'
     tier: 'Standard_v2'
 
@@ -424,7 +323,7 @@ module appGateway 'br/public:avm/res/network/application-gateway:0.4.0' = {
           }
         }
       }
-      // Private Frontend IP for Private Link (conditional)
+      // Private Frontend IP for Private Link
       {
         name: 'appGwPrivateFrontendIp'
         properties: {
@@ -534,7 +433,7 @@ module appGateway 'br/public:avm/res/network/application-gateway:0.4.0' = {
       }
     ]
 
-    // Private Link Configuration (conditional)
+    // Private Link Configuration
     privateLinkConfigurations: enablePrivateLink ? [
       {
         name: 'appgw-privatelink-config'
@@ -560,7 +459,6 @@ module appGateway 'br/public:avm/res/network/application-gateway:0.4.0' = {
       Environment: environment
       Purpose: 'Regional Load Balancer - NO WAF (cost optimization)'
       Tier: 'Standard_v2'
-      ManagedBy: 'AVM'
     }
   }
 }
@@ -575,31 +473,25 @@ output privateFrontendIpConfigName string = enablePrivateLink ? 'appGwPrivateFro
 output vnetId string = vnet.outputs.resourceId
 ```
 
-**Notice the difference?** Instead of 450+ lines of custom Bicep defining every property, we're:
-1. Calling AVM modules for VNet, Public IP, and Application Gateway
-2. Passing focused parameters
-3. Getting automatic best practices from Microsoft
-4. Outputs are standardized across all AVM modules
-
 Deploy this with:
 
 ```bash
 az deployment group create \
   --resource-group rg-centralized-waf \
-  --template-file appgateway-standard-avm.bicep \
+  --template-file appgateway-standard.bicep \
   --parameters environment=prod \
                minCapacity=2 \
                maxCapacity=10 \
                enablePrivateLink=true
 ```
 
-### Step 2: Deploy Azure Front Door Premium with WAF Using AVM
+### Step 2: Deploy Azure Front Door Premium with WAF
 
-Now let's create Front Door with a comprehensive WAF policy using AVM modules. This is where AVM really shines - Front Door configuration can be incredibly complex, but the module handles it elegantly.
+Now let's create Front Door with a comprehensive WAF policy.
 
-#### Create the Bicep Template Using AVM
+#### Create the Bicep Template
 
-Create a file named `frontdoor-premium-avm.bicep`:
+Create a file named `frontdoor-premium.bicep`:
 
 ```bicep
 @description('The name of the Azure Front Door profile')
@@ -632,7 +524,7 @@ param appGatewayHostname string
 @description('Additional PaaS origins (App Services, Container Apps, etc)')
 param paasOrigins array = []
 
-// Deploy Front Door WAF Policy using AVM Module
+// Deploy Front Door WAF Policy
 module wafPolicy 'br/public:avm/res/network/front-door-web-application-firewall-policy:0.3.0' = {
   name: 'wafPolicyDeployment'
   params: {
@@ -640,7 +532,7 @@ module wafPolicy 'br/public:avm/res/network/front-door-web-application-firewall-
     location: location
     sku: 'Premium_AzureFrontDoor'
 
-    // Policy Settings - COMPREHENSIVE (this is your ONLY WAF layer)
+    // Policy Settings - Comprehensive protection
     policySettings: {
       enabledState: 'Enabled'
       mode: 'Prevention'  // Start with Detection, move to Prevention after testing
@@ -706,7 +598,7 @@ module wafPolicy 'br/public:avm/res/network/front-door-web-application-firewall-
       }
     ]
 
-    // Managed Rules - Complete OWASP Coverage (CRITICAL - only WAF layer)
+    // Managed Rules - Complete OWASP Coverage
     managedRuleSets: [
       {
         ruleSetType: 'Microsoft_DefaultRuleSet'
@@ -722,12 +614,11 @@ module wafPolicy 'br/public:avm/res/network/front-door-web-application-firewall-
     tags: {
       Environment: environment
       Purpose: 'Centralized WAF - Single Layer Protection'
-      ManagedBy: 'AVM'
     }
   }
 }
 
-// Deploy Front Door Profile using AVM Module
+// Deploy Front Door Profile
 module frontDoor 'br/public:avm/res/cdn/profile:0.8.0' = {
   name: 'frontDoorDeployment'
   params: {
@@ -843,7 +734,6 @@ module frontDoor 'br/public:avm/res/cdn/profile:0.8.0' = {
       Environment: environment
       Purpose: 'Global Edge Security and Distribution'
       WAFLayer: 'Single Comprehensive Layer'
-      ManagedBy: 'AVM'
     }
   }
   dependsOn: [
@@ -860,12 +750,6 @@ output wafPolicyId string = wafPolicy.outputs.resourceId
 output frontDoorProfileId string = frontDoor.outputs.frontDoorId
 ```
 
-**Look at the difference!** Instead of 500+ lines of custom resource definitions:
-- AVM module handles all the complexity
-- Nested configuration for origin groups, origins, routes, and security policies
-- Automatic Private Link configuration
-- Built-in validation and best practices
-
 Deploy Front Door:
 
 ```bash
@@ -880,10 +764,10 @@ APP_GW_HOSTNAME=$(az network public-ip show \
   --name appgw-standard-xxxxx-pip \
   --query dnsSettings.fqdn -o tsv)
 
-# Deploy Front Door using AVM
+# Deploy Front Door
 az deployment group create \
   --resource-group rg-centralized-waf \
-  --template-file frontdoor-premium-avm.bicep \
+  --template-file frontdoor-premium.bicep \
   --parameters environment=prod \
                appGatewayResourceId="$APP_GW_ID" \
                appGatewayPrivateLinkConfigName='appgw-privatelink-config' \
@@ -917,11 +801,11 @@ Alternatively, through the Azure Portal:
 4. Click **Approve**
 5. Wait 5-10 minutes for the connection to establish
 
-### Step 4: Configure Logging and Monitoring Using AVM
+### Step 4: Configure Logging and Monitoring
 
-Centralized logging is critical for this architecture, especially since you have only one WAF layer. Let's use AVM modules for Log Analytics and diagnostic settings.
+Centralized logging is critical for this architecture, especially since you have only one WAF layer.
 
-Create a file named `monitoring-avm.bicep`:
+Create a file named `monitoring.bicep`:
 
 ```bicep
 @description('Log Analytics workspace name')
@@ -939,7 +823,7 @@ param appGatewayResourceId string
 @description('Environment name')
 param environment string = 'prod'
 
-// Deploy Log Analytics Workspace using AVM Module
+// Deploy Log Analytics Workspace
 module logAnalytics 'br/public:avm/res/operational-insights/workspace:0.9.0' = {
   name: 'logAnalyticsDeployment'
   params: {
@@ -962,23 +846,17 @@ module logAnalytics 'br/public:avm/res/operational-insights/workspace:0.9.0' = {
     tags: {
       Environment: environment
       Purpose: 'Centralized WAF Logging'
-      ManagedBy: 'AVM'
     }
   }
 }
-
-// Note: Diagnostic settings are typically configured directly on the resources
-// or via Azure Policy. AVM modules include diagnostic settings parameters.
-// For brevity, showing the pattern here:
 
 output logAnalyticsWorkspaceId string = logAnalytics.outputs.resourceId
 output logAnalyticsWorkspaceName string = logAnalytics.outputs.name
 ```
 
-**Best practice**: When deploying Application Gateway and Front Door with AVM, include diagnostic settings in the module parameters:
+**Best practice**: When deploying Application Gateway and Front Door, include diagnostic settings in the module parameters:
 
 ```bicep
-// Example: Add to appgateway-standard-avm.bicep
 module appGateway 'br/public:avm/res/network/application-gateway:0.4.0' = {
   params: {
     // ... other parameters
@@ -1004,264 +882,6 @@ module appGateway 'br/public:avm/res/network/application-gateway:0.4.0' = {
     ]
   }
 }
-```
-
-This is built into AVM modules - no need to create separate diagnostic settings resources!
-
-### AVM Module Version Management
-
-One critical best practice: **always pin module versions in production**.
-
-**Development/Testing** (latest versions):
-```bicep
-module appGateway 'br/public:avm/res/network/application-gateway:latest' = {
-  // ...
-}
-```
-
-**Production** (pinned versions):
-```bicep
-module appGateway 'br/public:avm/res/network/application-gateway:0.4.0' = {
-  // ...
-}
-```
-
-**Check for module updates quarterly**:
-```bash
-# List available AVM modules
-az bicep list-versions --module br/public:avm/res/network/application-gateway
-
-# View module documentation
-# Visit: https://aka.ms/avm
-# Or: https://azure.github.io/Azure-Verified-Modules/
-```
-
-**Update process**:
-1. Check release notes for new AVM module versions
-2. Test new version in dev/staging environment
-3. Review changes and breaking updates
-4. Update version in production Bicep files
-5. Deploy via CI/CD pipeline with proper approvals
-
-## The Code Comparison: Custom vs. AVM
-
-Let's quantify the difference between custom Bicep and AVM modules:
-
-### Application Gateway: Custom vs. AVM
-
-**Custom Bicep**:
-- Lines of code: ~450 lines
-- Maintenance burden: High (manual updates when Azure adds features)
-- Testing: You're responsible for testing every property
-- Best practices: You implement them (or forget to)
-- Time to write: 4-6 hours for comprehensive configuration
-
-**AVM Module**:
-- Lines of code: ~150 lines (70% reduction)
-- Maintenance burden: Low (Microsoft updates the module)
-- Testing: Microsoft tests the module
-- Best practices: Built-in by default
-- Time to write: 1-2 hours (mostly parameters)
-
-### Front Door: Custom vs. AVM
-
-**Custom Bicep**:
-- Lines of code: ~600 lines (Front Door is complex!)
-- Complexity: High (nested origins, routes, security policies)
-- Error-prone: Easy to misconfigure Private Link or WAF associations
-- Updates: Manual (when Azure adds features like new WAF rules)
-
-**AVM Module**:
-- Lines of code: ~180 lines (70% reduction)
-- Complexity: Abstracted (module handles nesting)
-- Error-prone: Reduced (module validates configurations)
-- Updates: Automatic (Microsoft updates the module)
-
-### Total Code Reduction
-
-**Custom Bicep approach**: ~1,050 lines of code
-**AVM Module approach**: ~330 lines of code
-
-**Savings**: **68% less code to write, test, and maintain**
-
-## AVM Best Practices for Production
-
-Now that you're using AVM modules, follow these best practices:
-
-### 1. Version Pinning Strategy
-
-**Development**:
-```bicep
-// Use latest for development (get newest features)
-module appGateway 'br/public:avm/res/network/application-gateway:latest' = { ... }
-```
-
-**Staging**:
-```bicep
-// Pin to specific version for testing
-module appGateway 'br/public:avm/res/network/application-gateway:0.4.0' = { ... }
-```
-
-**Production**:
-```bicep
-// ALWAYS pin to tested version
-module appGateway 'br/public:avm/res/network/application-gateway:0.4.0' = { ... }
-```
-
-### 2. Document Module Versions
-
-Create a `MODULE_VERSIONS.md` file in your repository:
-
-```markdown
-# Azure Verified Module Versions
-
-Last Updated: 2025-11-16
-
-## Production Modules
-
-| Module | Version | Last Updated | Notes |
-|--------|---------|--------------|-------|
-| avm/res/network/application-gateway | 0.4.0 | 2025-10-15 | Tested with Private Link |
-| avm/res/cdn/profile | 0.8.0 | 2025-10-20 | Front Door Premium |
-| avm/res/network/front-door-web-application-firewall-policy | 0.3.0 | 2025-10-10 | Comprehensive WAF |
-| avm/res/network/virtual-network | 0.5.2 | 2025-09-30 | Standard VNet config |
-| avm/res/network/public-ip-address | 0.6.0 | 2025-10-05 | Static Standard SKU |
-| avm/res/operational-insights/workspace | 0.9.0 | 2025-10-12 | Log Analytics |
-
-## Update Schedule
-
-- Check for updates: Monthly
-- Test updates: Quarterly
-- Production deployment: After successful staging validation
-```
-
-### 3. Automated Module Update Checks
-
-Add to your CI/CD pipeline:
-
-```yaml
-# Azure DevOps Pipeline example
-- task: AzureCLI@2
-  displayName: 'Check AVM Module Updates'
-  inputs:
-    azureSubscription: 'your-service-connection'
-    scriptType: 'bash'
-    scriptLocation: 'inlineScript'
-    inlineScript: |
-      echo "Checking for AVM module updates..."
-
-      # List current versions
-      grep "br/public:avm" *.bicep | grep -oP ":\K[0-9]+\.[0-9]+\.[0-9]+" | sort -u > current-versions.txt
-
-      # Check for newer versions (manual review recommended)
-      echo "Current module versions:"
-      cat current-versions.txt
-
-      echo "Visit https://aka.ms/avm to check for updates"
-```
-
-### 4. Parameter Files for Environments
-
-Use parameter files for different environments:
-
-**parameters.dev.json**:
-```json
-{
-  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
-  "contentVersion": "1.0.0.0",
-  "parameters": {
-    "environment": {
-      "value": "dev"
-    },
-    "minCapacity": {
-      "value": 0
-    },
-    "maxCapacity": {
-      "value": 2
-    },
-    "enablePrivateLink": {
-      "value": false
-    }
-  }
-}
-```
-
-**parameters.prod.json**:
-```json
-{
-  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
-  "contentVersion": "1.0.0.0",
-  "parameters": {
-    "environment": {
-      "value": "prod"
-    },
-    "minCapacity": {
-      "value": 2
-    },
-    "maxCapacity": {
-      "value": 10
-    },
-    "enablePrivateLink": {
-      "value": true
-    }
-  }
-}
-```
-
-Deploy with:
-```bash
-# Development
-az deployment group create \
-  --resource-group rg-centralized-waf-dev \
-  --template-file appgateway-standard-avm.bicep \
-  --parameters @parameters.dev.json
-
-# Production
-az deployment group create \
-  --resource-group rg-centralized-waf-prod \
-  --template-file appgateway-standard-avm.bicep \
-  --parameters @parameters.prod.json
-```
-
-### 5. AVM Module Troubleshooting
-
-When issues arise with AVM modules:
-
-**1. Check module documentation**:
-```bash
-# Visit the AVM module registry
-# https://aka.ms/avm
-# Or specific module docs:
-# https://github.com/Azure/bicep-registry-modules/tree/main/avm/res/network/application-gateway
-```
-
-**2. Review module source code**:
-All AVM modules are open-source on GitHub. If you encounter unexpected behavior, review the module source to understand what it's doing.
-
-**3. Check for known issues**:
-Visit the GitHub repository issues page:
-```
-https://github.com/Azure/bicep-registry-modules/issues
-```
-
-**4. Enable verbose logging**:
-```bash
-az deployment group create \
-  --resource-group rg-centralized-waf \
-  --template-file appgateway-standard-avm.bicep \
-  --parameters @parameters.prod.json \
-  --verbose
-```
-
-**5. Test module updates in isolation**:
-Before updating module versions in production, test in a separate resource group:
-```bash
-az group create --name rg-module-testing --location eastus
-
-az deployment group create \
-  --resource-group rg-module-testing \
-  --template-file appgateway-standard-avm.bicep \
-  --parameters environment=test minCapacity=1 maxCapacity=2
 ```
 
 ## The Gotchas: What They Don't Tell You
@@ -1362,49 +982,16 @@ Typical latency profile:
 
 **Measurement**: Always establish baseline latency metrics BEFORE implementing this architecture, then measure the delta.
 
-### 4. AVM Module Limitations
-
-**The Reality**: While AVM modules are powerful, they have some limitations.
-
-**Known limitations**:
-
-**1. Not all Azure resources have AVM modules yet**:
-- AVM is expanding, but not every Azure service has a module
-- Check https://aka.ms/avm for current availability
-- Fallback: Mix AVM modules with custom Bicep resources
-
-**2. Module versions can introduce breaking changes**:
-- Always read release notes before updating
-- Test new versions in dev/staging before production
-- Pin versions to avoid unexpected changes
-
-**3. Limited customization in some modules**:
-- Some AVM modules may not expose every single property
-- Tradeoff: Simplicity vs. complete control
-- Workaround: Fork the module or use custom resources for edge cases
-
-**4. Learning curve for module parameters**:
-- AVM modules use standardized parameter names
-- Documentation is essential (visit module docs)
-- IntelliSense in VS Code helps significantly
-
-**Best practices to mitigate**:
-1. Always review AVM module documentation before using
-2. Test modules in dev environment first
-3. Pin versions in production
-4. Have a rollback plan for module updates
-5. Mix AVM with custom Bicep when needed
-
 ## Best Practices and Recommendations
 
-After covering all the gotchas, here are my hard-won recommendations for this single-WAF architecture using AVM:
+After covering all the gotchas, here are my hard-won recommendations for this single-WAF architecture:
 
 ### 1. Start Simple, Add Complexity Gradually
 
 Don't deploy this entire architecture on day one. Evolution path:
 
 **Phase 1**: Application Gateway Standard_v2 only (2-4 weeks)
-- Get comfortable with AVM modules
+- Get comfortable with the infrastructure
 - Establish baseline performance metrics
 - Build operational runbooks
 - No WAF protection yet (acceptable for internal testing)
@@ -1421,12 +1008,9 @@ Don't deploy this entire architecture on day one. Evolution path:
 - Remove public Application Gateway endpoints
 - Validate security posture
 
-### 2. Infrastructure as Code with AVM is Non-Negotiable
-
-With AVM modules, Infrastructure as Code becomes EASIER:
+### 2. Infrastructure as Code is Non-Negotiable
 
 **Use**:
-- AVM modules for all supported resources
 - Bicep/Terraform for infrastructure
 - Azure DevOps/GitHub Actions for deployment pipelines
 - Parameter files for environment-specific configurations
@@ -1436,27 +1020,26 @@ With AVM modules, Infrastructure as Code becomes EASIER:
 ```
 /infrastructure
   /bicep
-    /modules          # Custom modules (when AVM doesn't fit)
+    /modules          # Custom modules if needed
     /parameters
       parameters.dev.json
       parameters.staging.json
       parameters.prod.json
-    appgateway-standard-avm.bicep
-    frontdoor-premium-avm.bicep
-    monitoring-avm.bicep
+    appgateway-standard.bicep
+    frontdoor-premium.bicep
+    monitoring.bicep
     main.bicep       # Orchestration
   /scripts
     deploy-dev.sh
     deploy-prod.sh
-  bicepconfig.json   # AVM registry configuration
-  MODULE_VERSIONS.md # Track AVM module versions
+  bicepconfig.json
 ```
 
 ### 3. Observability First
 
 Before deploying to production:
 
-**Must-have monitoring** (use AVM diagnostic settings):
+**Must-have monitoring**:
 1. Front Door WAF block rate and types (CRITICAL - only WAF layer)
 2. Front Door WAF false positive detection
 3. End-to-end latency tracking (user → backend)
@@ -1465,27 +1048,6 @@ Before deploying to production:
 6. Certificate expiration warnings
 7. Cost tracking and budget alerts
 8. Application Gateway routing health
-
-**AVM makes this easy**: Include diagnostic settings in module parameters:
-```bicep
-module frontDoor 'br/public:avm/res/cdn/profile:0.8.0' = {
-  params: {
-    // ... other params
-    diagnosticSettings: [
-      {
-        name: 'frontdoor-logs'
-        workspaceResourceId: logAnalyticsWorkspaceId
-        logCategoriesAndGroups: [
-          { categoryGroup: 'allLogs', enabled: true }
-        ]
-        metricCategories: [
-          { category: 'AllMetrics', enabled: true }
-        ]
-      }
-    ]
-  }
-}
-```
 
 **Recommended dashboards**:
 ```kusto
@@ -1512,99 +1074,13 @@ AzureDiagnostics
 - [ ] Private Link enabled, public Application Gateway access disabled
 - [ ] TLS 1.2 minimum enforced at all layers
 - [ ] Managed identity used for Key Vault certificate access
-- [ ] Diagnostic logs enabled via AVM module parameters
+- [ ] Diagnostic logs enabled for all resources
 - [ ] Azure Policy enforcing Standard_v2 SKU on all Application Gateways
-- [ ] Regular AVM module updates scheduled (quarterly)
 - [ ] Incident response runbook documented
 - [ ] Emergency WAF bypass procedure documented
 - [ ] Azure Firewall configured for internal traffic protection
-- [ ] All infrastructure deployed via AVM modules where available
 
-### 5. AVM Module Management Strategy
-
-**Create a module governance process**:
-
-1. **Module approval**: Before using a new AVM module, review its documentation and test it
-2. **Version tracking**: Maintain MODULE_VERSIONS.md with all module versions
-3. **Update schedule**:
-   - Monthly: Check for new AVM module releases
-   - Quarterly: Test and deploy module updates to production
-4. **Rollback plan**: Always keep previous working version in version control
-
-**CI/CD Pipeline with AVM**:
-```yaml
-# Azure DevOps Pipeline
-trigger:
-  branches:
-    include:
-      - main
-
-variables:
-  azureSubscription: 'your-service-connection'
-
-stages:
-- stage: Validate
-  jobs:
-  - job: BicepValidation
-    steps:
-    - task: AzureCLI@2
-      displayName: 'Validate Bicep Templates'
-      inputs:
-        azureSubscription: $(azureSubscription)
-        scriptType: 'bash'
-        scriptLocation: 'inlineScript'
-        inlineScript: |
-          # Validate all Bicep files
-          az bicep build --file infrastructure/bicep/main.bicep
-
-          # Check for AVM module updates
-          echo "Current AVM modules:"
-          grep -r "br/public:avm" infrastructure/bicep/*.bicep
-
-- stage: DeployDev
-  dependsOn: Validate
-  jobs:
-  - deployment: DeployInfrastructure
-    environment: Development
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          - task: AzureCLI@2
-            displayName: 'Deploy to Dev'
-            inputs:
-              azureSubscription: $(azureSubscription)
-              scriptType: 'bash'
-              scriptLocation: 'inlineScript'
-              inlineScript: |
-                az deployment group create \
-                  --resource-group rg-centralized-waf-dev \
-                  --template-file infrastructure/bicep/main.bicep \
-                  --parameters @infrastructure/bicep/parameters/parameters.dev.json
-
-- stage: DeployProd
-  dependsOn: DeployDev
-  jobs:
-  - deployment: DeployInfrastructure
-    environment: Production
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          - task: AzureCLI@2
-            displayName: 'Deploy to Production'
-            inputs:
-              azureSubscription: $(azureSubscription)
-              scriptType: 'bash'
-              scriptLocation: 'inlineScript'
-              inlineScript: |
-                az deployment group create \
-                  --resource-group rg-centralized-waf-prod \
-                  --template-file infrastructure/bicep/main.bicep \
-                  --parameters @infrastructure/bicep/parameters/parameters.prod.json
-```
-
-### 6. WAF Policy Management for Single-Layer Architecture
+### 5. WAF Policy Management for Single-Layer Architecture
 
 **Critical best practices** (since this is your ONLY WAF):
 
@@ -1649,7 +1125,7 @@ stages:
      --action Disabled
    ```
 
-### 7. Internal Traffic Protection Strategy
+### 6. Internal Traffic Protection Strategy
 
 Since internal traffic has no WAF protection, implement these compensating controls:
 
@@ -1722,42 +1198,9 @@ done | awk '{sum+=$2; count++} END {print "Average: " sum/count "s"}'
 # Compare to baseline (should be faster than double-WAF)
 ```
 
-### AVM Deployment Validation
+## Real-World Example: E-Commerce Platform
 
-**1. Verify AVM module versions deployed**:
-```bash
-# Check deployed resources have expected tags
-az resource list \
-  --resource-group rg-centralized-waf \
-  --query "[?tags.ManagedBy=='AVM'].{name:name, type:type, tags:tags}" \
-  --output table
-```
-
-**2. Validate diagnostic settings from AVM**:
-```bash
-# Check Application Gateway diagnostic settings
-az monitor diagnostic-settings list \
-  --resource $(az network application-gateway show \
-    --name appgw-standard-xxxxx \
-    --resource-group rg-centralized-waf \
-    --query id -o tsv) \
-  --query "value[].{name:name, workspaceId:workspaceId}" \
-  --output table
-```
-
-**3. Test AVM module updates** (non-production):
-```bash
-# Deploy with newer module version to test resource group
-az deployment group create \
-  --resource-group rg-module-testing \
-  --template-file appgateway-standard-avm.bicep \
-  --parameters environment=test \
-  --what-if  # See what would change
-```
-
-## Real-World Example: E-Commerce Platform with AVM
-
-Let me share a concrete example of how this architecture with AVM modules solved real problems for a fictional (but realistic) e-commerce company.
+Let me share a concrete example of how this architecture solved real problems for a fictional (but realistic) e-commerce company.
 
 **Scenario**: GlobalRetail Corp
 - Legacy .NET Framework web applications on Windows VMs (East US, West Europe)
@@ -1767,12 +1210,6 @@ Let me share a concrete example of how this architecture with AVM modules solved
 - Compliance requirements: PCI-DSS, GDPR
 - Cost-conscious (mid-sized company)
 - Small infrastructure team (2 people)
-
-**Why AVM was critical**:
-- Small team couldn't maintain hundreds of lines of custom Bicep
-- Needed Microsoft-verified security configurations for PCI-DSS
-- Wanted automatic updates with new Azure features
-- Required consistency across multiple deployments
 
 **Architecture**:
 ```
@@ -1794,32 +1231,26 @@ Azure Front Door Premium (ONLY WAF Layer)
             └── On-prem Order Management System
 ```
 
-**AVM Modules Used**:
-- `avm/res/network/application-gateway:0.4.0` - 3 instances across regions
-- `avm/res/cdn/profile:0.8.0` - Front Door Premium
-- `avm/res/network/front-door-web-application-firewall-policy:0.3.0` - Centralized WAF
-- `avm/res/network/virtual-network:0.5.2` - VNets in each region
-- `avm/res/operational-insights/workspace:0.9.0` - Centralized logging
-
 **Results**:
-1. **Infrastructure as Code**:
-   - Total Bicep code: ~500 lines (vs. ~1,800 lines with custom Bicep)
-   - Deployment time: Reduced from 2 hours to 45 minutes
-   - Maintenance burden: 70% reduction
+1. **Security posture**:
+   - All external traffic protected at Front Door edge
+   - Single, centralized WAF policy for compliance audits
+   - Consistent threat detection across all regions
 
-2. **Security posture**:
-   - External traffic: Full WAF protection at Front Door edge
-   - Automatic security updates via AVM module updates
-   - PCI-DSS compliant configurations built-in
-
-3. **Cost savings**:
+2. **Cost savings**:
    - Using Standard_v2 instead of WAF_v2: $300/month (3 gateways)
    - Annual savings: $3,600
+   - Reduced operational overhead with simplified management
+
+3. **Performance**:
+   - Single WAF inspection reduces latency by 10-30ms per request
+   - Edge caching reduces backend load by 40%
+   - Global Anycast routing improves user experience
 
 4. **Operational efficiency**:
-   - Small team can manage complex architecture
-   - Consistent deployments across regions
-   - Quarterly AVM updates bring new features automatically
+   - Small team can manage complex multi-region architecture
+   - Infrastructure as Code enables rapid deployments
+   - Centralized monitoring simplifies troubleshooting
 
 ## Alternative: When You SHOULD Use WAF on Application Gateway
 
@@ -1837,7 +1268,7 @@ This architecture isn't right for everyone. Consider using Application Gateway W
 **Cost impact**: +$100/month per Application Gateway
 **Security benefit**: Full application-layer protection for all traffic
 
-**AVM makes this easy**: Just change one parameter:
+**Simple configuration change**:
 ```bicep
 module appGateway 'br/public:avm/res/network/application-gateway:0.4.0' = {
   params: {
@@ -1881,24 +1312,22 @@ module appGateway 'br/public:avm/res/network/application-gateway:0.4.0' = {
 
 ## Wrapping Up
 
-Building a centralized WAF strategy with Azure Front Door Premium as your single security layer, backed by Application Gateway Standard_v2 for regional load balancing, is a pragmatic, cost-effective pattern for many organizations. Using **Azure Verified Modules (AVM)** makes this architecture significantly easier to implement, maintain, and update.
+Building a centralized WAF strategy with Azure Front Door Premium as your single security layer, backed by Application Gateway Standard_v2 for regional load balancing, is a pragmatic, cost-effective pattern for many organizations.
 
-**The AVM Advantage**:
-- **68% less code** compared to custom Bicep (330 lines vs. 1,050 lines)
-- **Microsoft-verified** security and reliability best practices
-- **Automatic updates** with new Azure features and security patches
-- **Reduced maintenance burden** for small infrastructure teams
-- **Consistent deployments** across environments and teams
-- **Production-ready** from day one
+**Key benefits of this architecture**:
+- **Single WAF layer**: All external traffic protected at the edge with Front Door Premium
+- **Cost savings**: $100/month per Application Gateway by using Standard_v2 instead of WAF_v2
+- **Performance optimized**: Single WAF inspection reduces latency by 10-30ms per request
+- **Centralized management**: One WAF policy to manage, monitor, and audit
+- **Global + Regional**: Front Door handles global distribution, Application Gateway handles regional integration
+- **Private Link security**: Secure backend connections without public exposure
 
-**Deploy this architecture with AVM if**:
+**Deploy this architecture if**:
 - You have multi-region deployments
 - You're running hybrid IaaS + PaaS workloads
 - You need centralized security management at the edge
 - You want to optimize costs without compromising external security
-- You have a small infrastructure team (AVM reduces complexity)
-- You want Microsoft-verified configurations
-- You need consistent, repeatable deployments
+- Your internal traffic originates from trusted sources
 
 **Use Application Gateway WAF_v2 instead if**:
 - Zero-trust security model (no internal traffic is trusted)
@@ -1911,23 +1340,20 @@ Building a centralized WAF strategy with Azure Front Door Premium as your single
 - You're single-region (Application Gateway Standard_v2 alone might be sufficient)
 - Your team is very small and not familiar with Infrastructure as Code
 
-The key is understanding your threat model, compliance requirements, and operational capacity. **Azure Verified Modules make this architecture accessible to teams of all sizes**, removing the burden of writing and maintaining hundreds of lines of custom infrastructure code.
+The key is understanding your threat model, compliance requirements, and operational capacity. For most organizations, protecting all external traffic with a comprehensive Front Door WAF, while accepting network-level-only protection for internal traffic, is a sensible, defensible approach.
 
-Remember: **Perfect security doesn't exist**. The goal is to implement security controls proportional to your actual risk, using modern tools that reduce operational burden. For most organizations, protecting all external traffic with a comprehensive Front Door WAF, while accepting network-level-only protection for internal traffic, is a sensible, defensible approach - and AVM makes it dramatically easier to implement and maintain.
+Remember: **Perfect security doesn't exist**. The goal is to implement security controls proportional to your actual risk. This architecture strikes that balance for many real-world scenarios.
 
-Have you implemented a centralized WAF strategy in Azure? Are you using Azure Verified Modules? I'd love to hear about your experiences and lessons learned.
+Have you implemented a centralized WAF strategy in Azure? I'd love to hear about your experiences and lessons learned.
 
-Stay secure, and may your infrastructure code be as clean as your WAF-protected traffic!
+Stay secure, and may your infrastructure be as robust as your security posture!
 
 ---
 
 **Additional Resources**:
-- [Azure Verified Modules (AVM) Registry](https://aka.ms/avm)
-- [AVM GitHub Repository](https://github.com/Azure/bicep-registry-modules)
 - [Azure Front Door Premium Documentation](https://learn.microsoft.com/azure/frontdoor/)
 - [Application Gateway v2 Best Practices](https://learn.microsoft.com/azure/well-architected/service-guides/azure-application-gateway)
 - [Private Link with Application Gateway](https://learn.microsoft.com/azure/frontdoor/how-to-enable-private-link-application-gateway)
 - [WAF Policy Management](https://learn.microsoft.com/azure/web-application-firewall/)
 - [Azure Firewall vs WAF: When to Use Which](https://learn.microsoft.com/azure/architecture/guide/networking/firewall-application-gateway)
 - [Application Gateway Standard_v2 vs WAF_v2 Comparison](https://learn.microsoft.com/azure/application-gateway/overview-v2)
-- [Bicep Registry Modules Documentation](https://learn.microsoft.com/azure/azure-resource-manager/bicep/modules)
