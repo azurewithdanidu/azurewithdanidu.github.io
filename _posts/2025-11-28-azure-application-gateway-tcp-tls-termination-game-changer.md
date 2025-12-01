@@ -14,7 +14,7 @@ tags:
   - bicep
   - networking
 ---
-![Application Gateway Architecture Before TCP/TLS Support - Separate Load Balancers for HTTP and Non-HTTP Traffic](/images/c3e9c155-e4a5-4fb1-8daf-e32dd6886d67.png)
+![Application Gateway Architecture Before TCP/TLS Support](images/2025-12-01-header.png)
 
 
 Howdy Folks,
