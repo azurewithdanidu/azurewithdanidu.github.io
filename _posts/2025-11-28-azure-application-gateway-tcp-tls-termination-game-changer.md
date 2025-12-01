@@ -14,7 +14,7 @@ tags:
   - bicep
   - networking
 ---
-![Application Gateway Architecture Before TCP/TLS Support](images/2025-12-01-header.png)
+![Application Gateway Architecture Before TCP/TLS](_posts/images/2025-12-01-headerduplicate.png)
 
 
 Howdy Folks,
