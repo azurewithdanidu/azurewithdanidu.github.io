@@ -83,7 +83,7 @@ You can now use a single Application Gateway instance to handle both HTTP and no
 ### 2. Flexible Backend Options
 
 Your backends can be located anywhere:
-- **Azure Resources**: VMs, VM Scale Sets, App Services, Event Hubs, SQL databases
+- **Azure Resources**: VMs, VM Scale Sets, App Services, Event Hubs, SFTP services
 - **On-Premises Servers**: Accessible via FQDN or IP addresses
 - **Remote Services**: Any accessible TCP/TLS endpoint
 
@@ -183,7 +183,7 @@ Let's look at how to configure TCP/TLS proxy on Application Gateway. I'll walk y
 1. **Frontend Listener**
    - Protocol: TCP or TLS
    - Frontend IP: Public or private IPv4
-   - Port: Application-specific (e.g., 1433 for SQL Server)
+   - Port: Application-specific (e.g., 22 for SFTP)
    - Priority: Required for routing rules
 
 2. **Backend Pool**
@@ -200,26 +200,26 @@ Let's look at how to configure TCP/TLS proxy on Application Gateway. I'll walk y
    - Connects backend settings
    - Requires priority value
 
-### Example: SQL Server Configuration
+### Example: SFTP Service Configuration
 
-Here's a real-world scenario: load balancing SQL Server traffic. Let's say you have multiple SQL Server instances and you want to load balance them using Application Gateway.
+Here's a real-world scenario: load balancing SFTP traffic for secure file transfers. Let's say you have multiple SFTP servers and you want to load balance them using Application Gateway for high availability and centralized access.
 
 **Listener Configuration:**
 - Protocol: TCP
-- Port: 1433 (standard SQL Server port)
+- Port: 22 (standard SFTP/SSH port)
 - Frontend IP: Public or private
 
-![Application Gateway TCP Listener Configuration for SQL Server Port 1433](/images/2025-11-28-appgw-tcp-listener-config-port-1433.png)
+![Application Gateway TCP Listener Configuration for SFTP Port 22](/images/2025-11-28-appgw-tcp-listener-config-port-22.png)
 
 **Backend Settings:**
 - Protocol: TCP
-- Port: 1433
+- Port: 22
 - Timeout: 20 seconds
 
-![Application Gateway Backend Setting Configuration for TCP SQL Server](/images/2025-11-28-appgw-backend-setting-tcp-sql-config.png)
+![Application Gateway Backend Setting Configuration for TCP SFTP Service](/images/2025-11-28-appgw-backend-setting-tcp-sftp-config.png)
 
 **Backend Pool:**
-- SQL Server VM IP addresses or FQDNs
+- SFTP Server VM IP addresses or FQDNs
 
 **Routing Rule:**
 - Priority: 100
@@ -238,7 +238,7 @@ Alright, now for the fun part! If you prefer to automate your deployments using 
 
 **Important Note**: This example uses native Bicep resources rather than Azure Verified Modules (AVM). Since the TCP/TLS proxy feature just reached GA, AVM support may still be maturing. Once you verify the latest AVM module version supports these new properties, you can migrate to AVM for cleaner, more maintainable code. Check the [AVM Application Gateway module](https://aka.ms/avm/res/network/applicationgateway) for updates.
 
-This template creates an Application Gateway specifically configured for TCP traffic - perfect for scenarios like SQL Server load balancing.
+This template creates an Application Gateway specifically configured for TCP traffic - perfect for scenarios like SFTP service load balancing.
 
 ```bicep
 
@@ -395,9 +395,9 @@ properties: {
   // Add HTTP backend settings
       frontendPorts: [
       {
-        name: 'port_1433'
+        name: 'port_22'
         properties: {
-          port: 1433
+          port: 22
         }
       }
     ]
@@ -409,7 +409,7 @@ properties: {
         }
       }
       {
-        name: 'sql'
+        name: 'sftp'
         properties: {
           backendAddresses: []
         }
@@ -419,9 +419,9 @@ properties: {
     backendHttpSettingsCollection: []
     backendSettingsCollection: [
       {
-        name: 'sqltest'
+        name: 'sftpSettings'
         properties: {
-          port: 1433
+          port: 22
           protocol: 'Tcp'
           timeout: 20
         }
@@ -437,7 +437,7 @@ properties: {
             id: '${applicationGateways_appgw_name_resource.id}/frontendIPConfigurations/appGwPublicFrontendIpIPv4'
           }
           frontendPort: {
-            id: '${applicationGateways_appgw_name_resource.id}/frontendPorts/port_1433'
+            id: '${applicationGateways_appgw_name_resource.id}/frontendPorts/port_22'
           }
           protocol: 'Tcp'
           hostNames: []
@@ -456,10 +456,10 @@ properties: {
             id: '${applicationGateways_appgw_name_resource.id}/listeners/test'
           }
           backendAddressPool: {
-            id: '${applicationGateways_appgw_name_resource.id}/backendAddressPools/sql'
+            id: '${applicationGateways_appgw_name_resource.id}/backendAddressPools/sftp'
           }
           backendSettings: {
-            id: '${applicationGateways_appgw_name_resource.id}/backendSettingsCollection/sqltest'
+            id: '${applicationGateways_appgw_name_resource.id}/backendSettingsCollection/sftpSettings'
           }
         }
       }
@@ -476,17 +476,17 @@ Once deployed, test connectivity to your TCP service:
 # Get the public IP
 PUBLIC_IP=$(az network public-ip show \
   --resource-group rg-appgw-tcp \
-  --name appgw-sql-prod-pip \
+  --name appgw-sftp-prod-pip \
   --query ipAddress \
   --output tsv)
 
-# For SQL Server, test with sqlcmd
-sqlcmd -S $PUBLIC_IP -U username -P password
+# For SFTP, test with sftp client
+sftp -P 22 username@$PUBLIC_IP
 
 # For generic TCP testing, use telnet or nc
-telnet $PUBLIC_IP 1433
+telnet $PUBLIC_IP 22
 # or
-nc -zv $PUBLIC_IP 1433
+nc -zv $PUBLIC_IP 22
 ```
 
 ### About Azure Verified Modules (AVM)
@@ -497,8 +497,8 @@ As TCP/TLS proxy support matures, the [Azure Verified Modules for Application Ga
 
 Let's talk about some real-world scenarios where this feature shines:
 
-### 1. Database Load Balancing
-Load balance SQL Server, PostgreSQL, MySQL, or other database connections while maintaining centralized certificate management and avoiding direct exposure of individual database servers to the internet.
+### 1. Secure File Transfer Services
+Load balance SFTP servers for secure file transfers while maintaining centralized certificate management and high availability. This is ideal for enterprise file transfer solutions where multiple SFTP servers provide redundancy and scalability for external partners and customers.
 
 ### 2. Hybrid Application Architecture
 Modern web applications (HTTPS) combined with legacy TCP-based services through a single gateway. This is perfect for those scenarios where you're modernizing but still need to support that old legacy app that runs on TCP.
@@ -507,7 +507,7 @@ Modern web applications (HTTPS) combined with legacy TCP-based services through 
 Applications using proprietary TCP or TLS protocols that previously couldn't leverage Application Gateway. Now you can bring them under the same umbrella.
 
 ### 4. Multi-Tier Applications
-Front-end APIs (HTTP/HTTPS) and backend message queues or cache servers (TCP/TLS) all accessible through one entry point, simplifying your overall architecture.
+Front-end APIs (HTTP/HTTPS) and backend message queues, cache servers, or FTP/SFTP services (TCP/TLS) all accessible through one entry point, simplifying your overall architecture.
 
 ### 5. Cross-Premises Connectivity
 Load balance traffic to on-premises servers or remote services using FQDN or IP addressing. Great for hybrid cloud scenarios.
