@@ -209,14 +209,10 @@ Here's a real-world scenario: load balancing SFTP traffic for secure file transf
 - Port: 22 (standard SFTP/SSH port)
 - Frontend IP: Public or private
 
-![Application Gateway TCP Listener Configuration for SFTP Port 22](/assets/img/2025-11-28-appgw-tcp-listener-config-port-22.png)
-
 **Backend Settings:**
 - Protocol: TCP
 - Port: 22
 - Timeout: 20 seconds
-
-![Application Gateway Backend Setting Configuration for TCP SFTP Service](/assets/img/2025-11-28-appgw-backend-setting-tcp-sftp-config.png)
 
 **Backend Pool:**
 - SFTP Server VM IP addresses or FQDNs
