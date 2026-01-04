@@ -27,3 +27,4 @@ _sass/vendors
 assets/js/dist
 .claude
 _posts/.claude
+.github/agents
