@@ -12,7 +12,7 @@ tags:
   - "cloud-news"
 ---
 
-![Azure Weekly Updates - Bicep Snapshot GA and Infrastructure Enhancements](/assets/img/posts/2026-03-08-azure-weekly-updates-bicep-snapshot-ga-azure-firewall-enhancements.jpg)
+![Azure Weekly Updates - Bicep Snapshot GA and Infrastructure Enhancements](/images/2026-03-08-azure-weekly-updates.png)
 
 Howdy Folks,
 
