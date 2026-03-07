@@ -8,11 +8,8 @@ categories:
 tags:
   - "azure-updates"
   - "bicep"
-  - "azure-friday"
   - "cloud-news"
 ---
-
-![Azure Weekly Updates - Bicep Snapshot GA and Infrastructure Enhancements](/images/2026-03-08-azure-weekly-updates.png.png)
 
 Howdy Folks,
 
@@ -35,7 +32,7 @@ bicep snapshot main.bicepparam --mode validate
 bicep snapshot main.bicepparam --subscription-id <sub-id> --resource-group myRg --location westus --mode overwrite
 ```
 
-This is huge for anyone doing infrastructure as code reviews or wanting to validate changes before deployment. Check out the [YouTube demo](https://www.youtube.com/watch?v=84jVnQI-0Ak) to see it in action!
+This is huge for anyone doing infrastructure as code reviews or wanting to validate changes before deployment!
 
 ## New Services & Features
 
@@ -162,10 +159,6 @@ Mark your calendars for these upcoming deprecations:
 
 Make sure to review these and plan your migrations accordingly!
 
-## Azure Friday Note
-
-Unfortunately, we couldn't access the latest Azure Friday videos this week due to technical limitations, but you can always catch up on the latest episodes at the [Azure Friday playlist](https://www.youtube.com/playlist?list=PLlVtbbG169nGL0hj1CeL2Zjmr73SmXIpc). The Azure Friday team consistently delivers great content on the latest Azure features and best practices.
-
 ## What's Coming Next
 
 Keep an eye on these developing trends:
@@ -189,5 +182,4 @@ Until next week, happy building in Azure!
 **Useful Links:**
 - [Azure Updates Portal](https://azure.microsoft.com/en-au/updates)
 - [Bicep Releases on GitHub](https://github.com/Azure/bicep/releases)
-- [Azure Friday YouTube Playlist](https://www.youtube.com/playlist?list=PLlVtbbG169nGL0hj1CeL2Zjmr73SmXIpc)
 - [Bicep Snapshot Command Documentation](https://github.com/Azure/bicep/blob/main/docs/experimental/snapshot-command.md)
