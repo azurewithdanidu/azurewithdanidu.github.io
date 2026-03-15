@@ -13,8 +13,6 @@ tags:
   - "databricks"
 ---
 
-![Azure Weekly Updates - PostgreSQL Power Moves and Databricks Delight](/images/2026-03-16-azure-weekly-updates.png)
-
 Howdy Folks,
 
 Let me tell you about a week that PostgreSQL fans have been waiting for. If you've ever tried to convince your team to use PostgreSQL on Azure but got pushback about tooling support or operational capabilities, this week's updates just handed you the ammunition you need. Terraform, Bicep, Ansible support for elastic clusters? Grafana dashboards baked in? Customer-managed keys on Premium SSD v2? Yeah, Microsoft is serious about PostgreSQL.

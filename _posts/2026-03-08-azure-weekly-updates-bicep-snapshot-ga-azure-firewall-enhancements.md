@@ -11,8 +11,6 @@ tags:
   - "cloud-news"
 ---
 
-![Azure Weekly Updates - Bicep Snapshot GA and Infrastructure Enhancements](/images/2026-03-08-azure-weekly-updates.png)
-
 Howdy Folks,
 
 Let me tell you about the Bicep snapshot command that just hit GA. If you've ever been in that awkward position where you're about to deploy infrastructure changes and someone asks "so... what exactly will this create?" - you know the pain. You squint at your Bicep code, mentally parse the conditionals, and hope your answer is correct. Well, those days are over.
