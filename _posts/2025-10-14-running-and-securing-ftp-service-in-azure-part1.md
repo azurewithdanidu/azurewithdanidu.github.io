@@ -14,6 +14,9 @@ tags:
   - networking
   - security
   - storage
+
+image:
+  path: /assets/img/posts/2025-10-20-image.png
 ---
 
 Howdy Folks,
