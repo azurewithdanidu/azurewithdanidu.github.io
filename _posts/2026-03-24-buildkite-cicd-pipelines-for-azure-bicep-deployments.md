@@ -1,9 +1,9 @@
 ---
-title: "Buildkite CI/CD Pipelines for Azure — From CLI Login to Full Bicep Deployments"
+title: "Buildkite CI/CD Pipelines for Azure  From CLI Login to Full Bicep Deployments"
 date: 2026-03-24 00:00:00 +1100
 categories: [DevOps, Pipelines]
 tags: [azure, buildkite, bicep, ci-cd, devops, infrastructure-as-code]
-description: "How to build Buildkite CI/CD pipelines for Azure — from Azure CLI authentication to full Bicep template deployments with lint, what-if, approval gates, and multi-scope support."
+description: "How to build Buildkite CI/CD pipelines for Azure  from Azure CLI authentication to full Bicep template deployments with lint, what-if, approval gates, and multi-scope support."
 author: danidu
 toc: true
 comments: true
@@ -18,14 +18,14 @@ image:
 
 Howdy Folks,
 
-It's been some time since I last delved into CI/CD tooling outside the usual suspects — Azure DevOps Pipelines and GitHub Actions. But recently, I had a scenario that pushed me towards **Buildkite**, and I have to say, the experience was genuinely refreshing.
+It's been some time since I last delved into CI/CD tooling outside the usual suspects Azure DevOps Pipelines and GitHub Actions. But recently, I had a scenario that pushed me towards **Buildkite**, and I have to say, the experience was genuinely refreshing.
 
-Here's the situation: I had existing GitHub Actions workflows deploying Azure Landing Zones with Bicep. They worked great. But what if you need your CI/CD agent to run on your _own_ infrastructure — inside a private network, behind a firewall, on a machine you fully control? GitHub-hosted runners can't always reach those private endpoints, and self-hosted GitHub Actions runners come with their own quirks. Buildkite is purpose-built for exactly this pattern.
+Here's the situation: I had existing GitHub Actions workflows deploying Azure Landing Zones with Bicep. They worked great. But what if you need your CI/CD agent to run on your _own_ infrastructure inside a private network, behind a firewall, on a machine you fully control? GitHub-hosted runners can't always reach those private endpoints, and self-hosted GitHub Actions runners come with their own quirks. Buildkite is purpose-built for exactly this pattern.
 
 In this post, I'll walk you through two production-ready Buildkite pipelines I built for Azure:
 
-1. **Pipeline 1** — Azure CLI Login (the foundation)
-2. **Pipeline 2** — Full Bicep Template Deployment (lint → build → what-if → approve → deploy)
+1. **Pipeline 1**  Azure CLI Login (the foundation)
+2. **Pipeline 2**  Full Bicep Template Deployment (lint → build → what-if → approve → deploy)
 
 All the code is open-source and available in my GitHub repository. So let's cut to the chase.
 
@@ -35,17 +35,14 @@ All the code is open-source and available in my GitHub repository. So let's cut 
 
 **Buildkite** is a CI/CD platform that splits responsibilities in a way that's fundamentally different from fully hosted platforms:
 
-- **Buildkite SaaS** — orchestrates builds, stores pipeline definitions, and shows build results in the web UI
-- **Buildkite Agent** — a small process _you_ run on your own machines (VMs, containers, laptops) that picks up and executes jobs
+- **Buildkite SaaS**  orchestrates builds, stores pipeline definitions, and shows build results in the web UI
+- **Buildkite Agent**  a small process _you_ run on your own machines (VMs, containers, laptops) that picks up and executes jobs
 
 This means your code, credentials, and sensitive data **never leave your environment**. For Azure deployments that need access to private VNets, on-premises resources, or sensitive credentials, this is a genuine advantage.
 
-> If you've ever fought with GitHub-hosted runners trying to reach private endpoints, you'll immediately appreciate why this architecture matters.
-{: .prompt-info }
-
 ### Buildkite Free Tier
 
-Buildkite has a generous free plan — no credit card required:
+Buildkite has a generous free plan  no credit card required:
 
 | Feature | Free Plan |
 |---|---|
@@ -61,18 +58,18 @@ The free plan doesn't include SSO, audit logs, or priority support. For teams la
 
 ---
 
-## Design Principles — Scripts Over Inline YAML
+## Design Principles  Scripts Over Inline YAML
 
 Before I show you the pipelines, let me explain the design philosophy. This is important because it's what makes these pipelines maintainable and reusable.
 
 **All logic lives in `.sh` files under `.buildkite/scripts/`.** The pipeline YAML only defines step order and calls scripts. This gives you:
 
-- **No `$$` escaping** of bash variables inside YAML — if you've done this before, you know the pain
+- **No `$$` escaping** of bash variables inside YAML  if you've done this before, you know the pain
 - **No heredocs** or multi-line string gymnastics
-- **Local testing** — every script can be tested with `bash .buildkite/scripts/script-name.sh`
-- **Reusability** — the Bicep scripts are driven entirely by environment variables. To deploy a different template, create a new pipeline YAML and change the env vars — no script changes needed
+- **Local testing**  every script can be tested with `bash .buildkite/scripts/script-name.sh`
+- **Reusability**  the Bicep scripts are driven entirely by environment variables. To deploy a different template, create a new pipeline YAML and change the env vars  no script changes needed
 
-**Each step is self-contained.** Buildkite steps run in completely fresh environments — nothing installed or set in one step persists to the next. So every step that needs Azure CLI re-runs the install and login scripts. They're idempotent and complete quickly if the tool is already present.
+**Each step is self-contained.** Buildkite steps run in completely fresh environments  nothing installed or set in one step persists to the next. So every step that needs Azure CLI re-runs the install and login scripts. They're idempotent and complete quickly if the tool is already present.
 
 ---
 
@@ -104,15 +101,15 @@ Here's the full layout of the [azure-buildkite-pipelines](https://github.com/azu
     └── deploy-action.yml                  # Original deploy action (reference)
 ```
 
-The `sample/` folder contains the original GitHub Actions workflows these pipelines were converted from — useful for comparison if you're migrating from Actions to Buildkite.
+The `sample/` folder contains the original GitHub Actions workflows these pipelines were converted from  useful for comparison if you're migrating from Actions to Buildkite.
 
 ---
 
-## Authentication — Service Principal with Buildkite Secrets
+## Authentication  Service Principal with Buildkite Secrets
 
-These pipelines authenticate to Azure using a **service principal with a client secret**. Credentials are stored in [Buildkite Secrets](https://buildkite.com/docs/pipelines/security/secrets/buildkite-secrets), which are encrypted at rest and injected at runtime by the agent — they are never exposed in logs or pipeline YAML.
+These pipelines authenticate to Azure using a **service principal with a client secret**. Credentials are stored in [Buildkite Secrets](https://buildkite.com/docs/pipelines/security/secrets/buildkite-secrets), which are encrypted at rest and injected at runtime by the agent  they are never exposed in logs or pipeline YAML.
 
-### Step 1 — Create a Service Principal in Azure
+### Step 1  Create a Service Principal in Azure
 
 ```bash
 az ad sp create-for-rbac \
@@ -139,7 +136,7 @@ Map these values to secrets:
 > For Bicep deployments at subscription scope that assign roles (e.g. landing zone patterns), the service principal also needs the **Owner** role, or at minimum **Contributor** plus **User Access Administrator**.
 {: .prompt-warning }
 
-### Step 2 — Store Credentials as Buildkite Secrets
+### Step 2  Store Credentials as Buildkite Secrets
 
 1. In Buildkite, go to your pipeline
 2. Click **Settings** → **Secrets**
@@ -157,27 +154,22 @@ At runtime, scripts retrieve these using:
 AZURE_CLIENT_ID=$(buildkite-agent secret get AZURE_CLIENT_ID)
 ```
 
-The agent fetches the value from the Buildkite API over a local socket — the secret is never written to disk or printed to stdout.
+The agent fetches the value from the Buildkite API over a local socket  the secret is never written to disk or printed to stdout.
 
 > Buildkite Secrets require agent **v3.27.0 or higher**. Check your version with `buildkite-agent --version`.
 {: .prompt-info }
 
 ### A Note on OIDC
 
-The original GitHub Actions workflows used **OpenID Connect (OIDC)** for passwordless authentication — no client secret stored anywhere; Azure trusts GitHub's identity token directly.
+The original GitHub Actions workflows used **OpenID Connect (OIDC)** for passwordless authentication  no client secret stored anywhere; Azure trusts GitHub's identity token directly.
 
-Buildkite also supports OIDC. However, getting Buildkite OIDC to work with Azure requires several non-trivial steps:
+Buildkite also supports OIDC. However, getting Buildkite OIDC to work with Azure requires several non-trivial steps
 
-1. Creating an app registration with a federated identity credential pointing to Buildkite's OIDC issuer (`https://agent.buildkite.com`)
-2. Configuring the correct subject claim matching the Buildkite organization slug, pipeline slug, and optionally the branch
-3. Ensuring agent version and cluster configuration support OIDC token generation
-4. The federated credential subject format is not well-documented for Buildkite specifically
-
-Due to these complexities, these pipelines use service principal + client secret stored in Buildkite Secrets. This is a well-understood, reliable approach and is secure when combined with Buildkite Secrets (not hardcoded env vars). If you want to pursue OIDC in the future, refer to [Buildkite OIDC docs](https://buildkite.com/docs/agent/v3/cli-oidc) and [Azure Workload Identity Federation](https://learn.microsoft.com/azure/active-directory/workload-identities/workload-identity-federation).
+Documentation was getting updated by the time I write this post
 
 ---
 
-## Pipeline 1 — Azure CLI Login
+## Pipeline 1  Azure CLI Login
 
 This is the foundation pipeline. It installs Azure CLI on the agent and authenticates with Azure using the service principal credentials stored in Buildkite Secrets.
 
@@ -189,7 +181,7 @@ flowchart LR
     B --> C["Step 2\nVerify Azure\nAccess"]
 ```
 
-Each step re-runs `install-az.sh` and `az-login.sh` because Buildkite steps run in completely isolated environments — nothing persists between them.
+Each step re-runs `install-az.sh` and `az-login.sh` because Buildkite steps run in completely isolated environments  nothing persists between them.
 
 ### The Pipeline YAML
 
@@ -221,11 +213,11 @@ steps:
     timeout_in_minutes: 5
 ```
 
-Notice how clean the YAML is — no inline bash, no variable escaping, just script calls. The `retry` block gives the setup step two automatic retries (useful for transient network issues during CLI installation), and the verify step uses `soft_fail: true` so a listing failure won't block the pipeline.
+Notice how clean the YAML is  no inline bash, no variable escaping, just script calls. The `retry` block gives the setup step two automatic retries (useful for transient network issues during CLI installation), and the verify step uses `soft_fail: true` so a listing failure won't block the pipeline.
 
 ### Key Scripts
 
-**`install-az.sh`** — Detects the agent's OS and installs Azure CLI accordingly. Supports Debian/Ubuntu, RHEL/CentOS, and macOS. Skips installation if `az` is already present:
+**`install-az.sh`**  Detects the agent's OS and installs Azure CLI accordingly. Supports Debian/Ubuntu, RHEL/CentOS, and macOS. Skips installation if `az` is already present:
 
 ```bash
 #!/bin/bash
@@ -255,7 +247,7 @@ else
 fi
 ```
 
-**`az-login.sh`** — Fetches credentials from Buildkite Secrets, runs `az login --service-principal`, and creates a Buildkite build annotation showing the authenticated account:
+**`az-login.sh`**  Fetches credentials from Buildkite Secrets, runs `az login --service-principal`, and creates a Buildkite build annotation showing the authenticated account:
 
 ```bash
 #!/bin/bash
@@ -284,7 +276,7 @@ echo "Account:         ${ACCOUNT_NAME}"
 echo "Subscription ID: ${SUBSCRIPTION_ID}"
 ```
 
-**`verify-access.sh`** — A simple verification that runs `az account show` and `az group list`, then annotates the build:
+**`verify-access.sh`**  A simple verification that runs `az account show` and `az group list`, then annotates the build:
 
 ```bash
 #!/bin/bash
@@ -319,7 +311,7 @@ EOF
 
 ---
 
-## Pipeline 2 — Bicep Template Deployment
+## Pipeline 2  Bicep Template Deployment
 
 This is where it gets interesting. A full CI/CD pipeline for deploying Azure **Bicep** templates, converted from the GitHub Actions workflows in the `sample/` folder. It supports all four Azure deployment scopes: **subscription**, **tenant**, **management group**, and **resource group**.
 
@@ -420,14 +412,14 @@ steps:
 
 Let me break down the highlights:
 
-- **Block step with selectable fields**: The first step prompts the user to select the parameter file, target subscription, and Azure region — equivalent to `workflow_dispatch` inputs in GitHub Actions. Values are stored as Buildkite meta-data and read by scripts.
+- **Block step with selectable fields**: The first step prompts the user to select the parameter file, target subscription, and Azure region  equivalent to `workflow_dispatch` inputs in GitHub Actions. Values are stored as Buildkite meta-data and read by scripts.
 - **Artifact passing**: The build step compiles Bicep to JSON and uploads the `deploy/` directory as a Buildkite artifact. Subsequent steps download it with `buildkite-agent artifact download`.
 - **Branch-gated deployment**: The approval gate and deploy step only appear on the `main` branch (`if: build.branch == "main"`).
-- **Concurrency control**: `concurrency: 1` and `concurrency_group` ensure only one deployment runs at a time — no accidental parallel deployments.
+- **Concurrency control**: `concurrency: 1` and `concurrency_group` ensure only one deployment runs at a time  no accidental parallel deployments.
 
-### The Bicep Scripts — Deep Dive
+### The Bicep Scripts  Deep Dive
 
-#### `bicep-build.sh` — Lint, Compile, and Package
+#### `bicep-build.sh`  Lint, Compile, and Package
 
 This script does three things:
 1. **Lints** the Bicep template with `az bicep lint`
@@ -471,7 +463,7 @@ echo "--- :white_check_mark: Build artifacts"
 ls -la "${BUILD_DIR}/"
 ```
 
-#### `bicep-whatif.sh` — Preview Changes Safely
+#### `bicep-whatif.sh`  Preview Changes Safely
 
 The what-if script is where the multi-scope magic happens. It reads `AZURE_DEPLOYMENT_TYPE` and routes to the correct `az deployment` scope:
 
@@ -521,7 +513,7 @@ The pipeline supports all four Azure ARM deployment scopes out of the box:
 | Scope | `AZURE_DEPLOYMENT_TYPE` | Additional Env Vars Required |
 |---|---|---|
 | Subscription | `subscription` | `AZURE_SUBSCRIPTION_ID` |
-| Tenant | `tenant` | — (requires tenant-level RBAC) |
+| Tenant | `tenant` |  (requires tenant-level RBAC) |
 | Management Group | `managementgroup` | `AZURE_MANAGEMENT_GROUP_ID` |
 | Resource Group | `resourcegroup` | `AZURE_SUBSCRIPTION_ID`, `AZURE_RESOURCE_GROUP_NAME` |
 
@@ -533,11 +525,11 @@ env:
   AZURE_MANAGEMENT_GROUP_ID: "your-mg-id"
 ```
 
-The scripts are completely reusable — no changes needed.
+The scripts are completely reusable  no changes needed.
 
 ---
 
-## Getting Started — Step by Step
+## Getting Started  Step by Step
 
 ### 1. Create a Buildkite Account
 
@@ -580,7 +572,7 @@ The agent will appear as online in the Buildkite UI under **Agents**.
 
 ### 4. Create Your Pipeline
 
-In the Buildkite UI, create a new pipeline and point it at the repository. Set the pipeline steps source to **"Read from repository"** — Buildkite will look for `.buildkite/pipeline.yml` automatically.
+In the Buildkite UI, create a new pipeline and point it at the repository. Set the pipeline steps source to **"Read from repository"**  Buildkite will look for `.buildkite/pipeline.yml` automatically.
 
 ### 5. Store Your Azure Credentials
 
@@ -620,7 +612,7 @@ The `bicep-build.sh`, `bicep-whatif.sh`, and `bicep-deploy.sh` scripts are reusa
 
 ---
 
-## Buildkite vs GitHub Actions vs Azure DevOps — Quick Comparison
+## Buildkite vs GitHub Actions vs Azure DevOps  Quick Comparison
 
 Since many of you are experienced with other CI/CD platforms, here's a quick comparison to set expectations:
 
@@ -635,7 +627,7 @@ Since many of you are experienced with other CI/CD platforms, here's a quick com
 | Concurrency control | `concurrency` + `concurrency_group` | `concurrency` key | Exclusive locks |
 | Credential isolation | **Never leaves your infra** | Hosted runner = GitHub infra | Hosted agent = Microsoft infra |
 
-The key differentiator is credential and code isolation. With Buildkite, your code and secrets stay on your infrastructure — period.
+The key differentiator is credential and code isolation. With Buildkite, your code and secrets stay on your infrastructure  period.
 
 ---
 
@@ -658,9 +650,9 @@ Feel free to fork it, adapt it to your own templates, and reach out if you have 
 
 ## Wrapping Up
 
-Buildkite is one of those tools that does one thing exceptionally well — running CI/CD pipelines on your own infrastructure with a clean, minimal orchestration layer. If you need your Azure deployment pipelines to execute inside your own network boundary, or you simply prefer the security model of keeping credentials on your own machines, Buildkite is a solid choice.
+Buildkite is one of those tools that does one thing exceptionally well  running CI/CD pipelines on your own infrastructure with a clean, minimal orchestration layer. If you need your Azure deployment pipelines to execute inside your own network boundary, or you simply prefer the security model of keeping credentials on your own machines, Buildkite is a solid choice.
 
-The two pipelines I've shared here give you a production-ready starting point — from basic Azure CLI authentication all the way to a full Bicep deployment workflow with linting, what-if previews, manual approval gates, and multi-scope support.
+The two pipelines I've shared here give you a production-ready starting point  from basic Azure CLI authentication all the way to a full Bicep deployment workflow with linting, what-if previews, manual approval gates, and multi-scope support.
 
 Hope this will help someone in need. Until next time...!
 
