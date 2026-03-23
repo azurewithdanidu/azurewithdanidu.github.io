@@ -15,7 +15,6 @@ image:
   alt: "Buildkite CI/CD Pipelines for Azure Bicep Deployments"
 ---
 
-<!-- TODO: Add hero image showing Buildkite + Azure logos -->
 
 Howdy Folks,
 
