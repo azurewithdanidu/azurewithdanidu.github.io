@@ -1,6 +1,6 @@
 ---
 title: "Buildkite CI/CD Pipelines for Azure — From CLI Login to Full Bicep Deployments"
-date: 2026-03-24 10:00:00 +1100
+date: 2026-03-24 00:00:00 +1100
 categories: [DevOps, Pipelines]
 tags: [azure, buildkite, bicep, ci-cd, devops, infrastructure-as-code]
 description: "How to build Buildkite CI/CD pipelines for Azure — from Azure CLI authentication to full Bicep template deployments with lint, what-if, approval gates, and multi-scope support."
