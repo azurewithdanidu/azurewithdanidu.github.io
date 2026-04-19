@@ -98,7 +98,16 @@ The `@aws-discovery` agent performs **read-only enumeration** of a live AWS acco
 
 The decision to use **MCP instead of CLI** was deliberate. CLI commands require credentials configured on the host machine, produce unstructured text output that agents need to parse, and aren't portable across operating systems. MCP gives the agent structured JSON responses directly, keeps the agent logic clean, and works identically on any platform where VS Code runs.
 
-If you don't have the AWS Cloud Control API MCP server configured, there's an alternative: `@aws-discovery-skills`, which uses a built-in SKILL.md that defines a comprehensive CLI-based discovery workflow as a fallback.
+If you don't have the AWS Cloud Control API MCP server configured, there's an alternative: `@aws-discovery-skills`, which uses a built-in SKILL.md that defines a comprehensive CLI-based discovery workflow as a fallback. That agent uses **no MCP servers** at all — it drives discovery entirely through AWS CLI commands via the `execute` tool.
+
+**MCP tools declared in `aws-discovery.agent.md`:**
+
+```yaml
+tools:
+  - aws-api-mcp-server/*   # AWS Cloud Control API — full resource enumeration across all regions
+  - aws-knowledge-mcp/*    # AWS service documentation lookups
+  - azure-mcp/search       # Azure region and service availability checks
+```
 
 > The `@aws-discovery` agent is **strictly read-only**. It makes zero write calls. The agent instructions explicitly prohibit any mutation operations.
 {: .prompt-info }
@@ -117,6 +126,22 @@ The design document covers 11 sections — service mapping, network topology, se
 - `architecture-diagram-azure.mmd` — Mermaid diagram of the target Azure topology
 - `service-mapping.md` — explicit AWS → Azure service equivalence table
 - `cost-comparison.md` — rough cost modelling for the target architecture
+
+**MCP tools declared in `azure-architect.agent.md`:**
+
+```yaml
+tools:
+  - aws-knowledge-mcp/*                                          # AWS service docs (source-side mapping)
+  - microsoftdocs/mcp/*                                          # Microsoft Learn — Azure docs + AVM modules
+  - azure-mcp/documentation                                      # Azure service documentation
+  - azure-mcp/search                                             # Azure resource/service search
+  - mermaidchart.vscode-mermaid-chart/get_syntax_docs            # Mermaid syntax reference
+  - mermaidchart.vscode-mermaid-chart/mermaid-diagram-validator  # Validates every .mmd file before writing
+  - mermaidchart.vscode-mermaid-chart/mermaid-diagram-preview    # Previews rendered diagrams inline
+```
+
+> The three `mermaidchart` tools come from the **Mermaid Chart VS Code extension** — not a remote MCP server. The agent uses them to validate every diagram it generates before writing the `.mmd` file to disk.
+{: .prompt-info }
 
 ### The APIM Decision
 
@@ -154,6 +179,15 @@ outputs/bicep-templates/
 
 The agent uses the **Microsoft Learn MCP server** to look up current AVM module references during generation — no hardcoded module versions.
 
+**MCP tools declared in `iac-transformation.agent.md`:**
+
+```yaml
+tools:
+  - aws-knowledge-mcp/*   # AWS CloudFormation service and resource docs
+  - microsoftdocs/mcp/*   # Microsoft Learn — AVM module references and Bicep docs
+  - azure-mcp/*           # Full Azure MCP access (resource info, service lookups)
+```
+
 ### 3b — Code Refactor: Lambda → Azure Functions
 
 The `@code-refactor` agent re-writes Python Lambda handlers to the **Azure Functions v2 decorator model**. The critical decisions here are:
@@ -163,6 +197,21 @@ The `@code-refactor` agent re-writes Python Lambda handlers to the **Azure Funct
 **Pre-signed URL → SAS Token**: The pre-signed URL pattern from S3 maps cleanly to Azure Blob **SAS tokens using user-delegation keys** (generated via `get_user_delegation_key()` from `BlobServiceClient`). The client-side upload/download path is preserved — clients still talk directly to storage; the API generates short-lived tokens. The key detail: use user-delegation SAS (Managed Identity path) rather than account-key SAS.
 
 **Environment variables**: One lesson learned the hard way — `CONTAINER_NAME` is a reserved environment variable in the Azure Functions host. Renaming it to `BLOB_CONTAINER_NAME` is not optional.
+
+**MCP tools declared in `code-refactor.agent.md`:**
+
+```yaml
+tools:
+  - aws-knowledge-mcp/*                          # boto3 API docs — source SDK reference
+  - microsoftdocs/mcp/*                          # azure-storage-blob and azure-identity SDK docs
+  - ms-python.python/getPythonEnvironmentInfo    # Inspect local Python virtual environments
+  - ms-python.python/getPythonExecutableCommand  # Locate the correct Python 3.11 executable
+  - ms-python.python/installPythonPackage        # Install azure-* packages into .venv
+  - ms-python.python/configurePythonEnvironment  # Set interpreter path for the workspace
+```
+
+> The `ms-python.python/*` entries are **VS Code Python extension tools**, not external MCP servers. They let the agent manage the local virtual environment directly without shelling out raw CLI commands.
+{: .prompt-info }
 
 ### 3c — Pipeline Builder: GitHub Actions with OIDC
 
@@ -177,6 +226,13 @@ The `@pipeline-builder-agent` generates three GitHub Actions workflows:
 Authentication uses **OIDC / Workload Identity Federation** throughout — no client secrets, no expiry dates, no rotation. The Bicep deployment uses subscription scope (`az deployment sub create`) to handle resource group creation as part of the IaC lifecycle.
 
 The `deploy-infra.yml` what-if step is surfaced as a pull request comment when triggered from a PR, giving you a diff of planned changes before the merge button is touched. Environment gates enforce: dev auto-deploys; staging requires 1 reviewer; prod requires 2 reviewers.
+
+**MCP tools declared in `pipeline-builder-agent.agent.md`:**
+
+```yaml
+tools:
+  - azure-mcp/search   # Looks up Azure service names, regions, and resource IDs for workflow config
+```
 
 ---
 
@@ -201,6 +257,46 @@ The `@deployment-validation` agent runs a **15-point static validation checklist
 15. Azure Policy compliance (naming conventions, tagging)
 
 The output is `outputs/validation-report.md` — a structured report with pass/fail status per check plus remediation notes for any failures. The sample migration ran 15/15.
+
+> This agent has **no MCP tools declared**. It works entirely from artefacts already on disk — no network calls, no MCP server dependency. That makes validation fast and reliable regardless of MCP server availability.
+{: .prompt-info }
+
+---
+
+## The Orchestrator: `@migration-project-manager`
+
+If the four phases are the engine, the `@migration-project-manager` is the icing on the cake. It's the agent that turns a collection of capable specialists into a single automated pipeline you can trigger with one prompt.
+
+```
+@migration-project-manager Run the full migration pipeline for AWS account <your-account-id>
+```
+
+That's it. One prompt. The project manager then:
+
+1. **Invokes `@aws-discovery`** — waits for all five artefacts to appear in `outputs/aws-migration-artifacts/` before proceeding
+2. **Invokes `@azure-architect`** — waits for `design-document.md`, `architecture-diagram-azure.mmd`, `service-mapping.md`, and `cost-comparison.md` before proceeding
+3. **Invokes `@iac-transformation`, `@code-refactor`, and `@pipeline-builder-agent` in parallel** — all three run concurrently since they write to separate output folders with no shared state
+4. **Invokes `@deployment-validation`** — only after all three Phase 3 agents have completed and their artefacts are verified
+
+At each boundary, the orchestrator **reads the output folder** and verifies the expected artefacts exist before calling the next agent. If something is missing, it surfaces a clear blocker to the user rather than letting a downstream agent run against incomplete inputs.
+
+Throughout the run, it maintains a live task plan at `outputs/migration-task-plan.md` — a structured Markdown file that logs phase status, completed tasks, and any blockers. This is what feeds the Visualizer dashboard.
+
+**MCP tools declared in `migration-project-manager.agent.md`:**
+
+```yaml
+tools:
+  - read     # reads artefact files to verify phase completion
+  - edit     # writes and updates outputs/migration-task-plan.md
+  - agent    # delegates to all specialist agents
+  - search   # searches the outputs/ folder for artefacts
+  - todo     # tracks in-progress tasks
+```
+
+Notice what's **not** in that list: no MCP servers whatsoever. The orchestrator has deliberately zero external dependencies. It reads files, delegates to agents, and verifies outputs. All the real work — and all the MCP server calls — happens inside the specialist agents it invokes. This is intentional: a lightweight coordinator should never be blocked by an unavailable MCP server.
+
+> You can also start from a specific phase if a previous run partially completed: `@migration-project-manager Resume from architecture phase`. The agent will re-verify existing artefacts and pick up from the correct point.
+{: .prompt-tip }
 
 ---
 
