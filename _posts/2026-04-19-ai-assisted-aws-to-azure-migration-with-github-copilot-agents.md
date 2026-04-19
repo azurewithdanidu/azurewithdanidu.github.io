@@ -15,6 +15,8 @@ image:
   alt: "AI-Assisted AWS to Azure Migration with GitHub Copilot Agents — One Prompt, Full Pipeline"
 ---
 
+> This blog post is backed by a github repository https://github.com/azurewithdanidu/ai-assisted-aws-to-azure-migration
+
 Howdy Folks,
 
 Cloud migrations are hard. Not because the technology is hard — Azure and AWS have well-documented service equivalents, the tooling is mature, and the patterns are well understood. Migrations are hard because of **scale, consistency, and human error at each handoff**. A typical AWS-to-Azure migration involves at least five distinct disciplines: infrastructure discovery, architecture design, application code refactoring, IaC generation, and CI/CD pipeline setup. Each phase is usually handled by a different person or team, and context gets lost at every boundary.
@@ -339,7 +341,6 @@ For example, the code refactor instructions cover things like Azure compute runt
 None of this knowledge is hardcoded into the agents themselves — it lives in the instruction files, which means you can update them as Azure evolves, as new AVM modules ship, or as your organisation's standards change. The agents inherit the updated knowledge on the next run without any code changes.
 
 > The instruction files in this repo reflect real-world migration experience. If you adapt this framework for your own organisation, treat the instruction files as the primary place to encode your own standards, naming conventions, and architectural guardrails.
-{: .prompt-tip }
 
 ---
 
