@@ -31,8 +31,8 @@ Let's dive in.
 
 Let's paint a realistic picture. Your organisation has a workload running on AWS — Lambda functions, S3 buckets, API Gateway, CloudFormation stacks. Management has decided to migrate to Azure. You have a team of engineers, a deadline, and a long list of decisions to make:
 
-- Which AWS services map to which Azure equivalents?
-- How do you re-platform Python Lambda functions to Azure Functions without breaking the application logic?
+- Which AWS services map to which Azure equivalents — and is that mapping always one-to-one?
+- How do you re-platform application code from AWS SDKs to Azure SDKs without breaking business logic?
 - How do you generate production-grade Bicep from CloudFormation without writing it from scratch?
 - How do you ensure the CI/CD pipelines use OIDC and not long-lived credentials?
 - How do you validate that all generated artefacts are consistent with each other before anyone touches the deploy button?
@@ -54,7 +54,7 @@ The framework consists of **eight custom Copilot agents**, each with a single re
 | `@aws-discovery-skills` | 1 — Discovery | Alternative: uses CLI skill instead of MCP |
 | `@azure-architect` | 2 — Architecture | AWS-to-Azure mapping, design document, Mermaid diagrams |
 | `@iac-transformation` | 3a — IaC | CloudFormation → Bicep (AVM modules) |
-| `@code-refactor` | 3b — Code | Lambda → Azure Functions v2 (Python 3.11, decorator model) |
+| `@code-refactor` | 3b — Code | AWS application code → Azure SDK equivalents, preserving all business logic |
 | `@pipeline-builder-agent` | 3c — Pipelines | GitHub Actions CI/CD with OIDC / Workload Identity Federation |
 | `@deployment-validation` | 4 — Validation | 15-point static checklist across all generated artefacts |
 
@@ -143,14 +143,6 @@ tools:
 > The three `mermaidchart` tools come from the **Mermaid Chart VS Code extension** — not a remote MCP server. The agent uses them to validate every diagram it generates before writing the `.mmd` file to disk.
 {: .prompt-info }
 
-### The APIM Decision
-
-One of the most common over-engineering pitfalls in migrations is the reflexive addition of **Azure API Management (APIM)** as the equivalent of AWS API Gateway. APIM is a powerful product — it gives you rate limiting, request transformation, a developer portal, and policy enforcement. But it also starts at roughly $150/month for the Developer tier and adds significant operational complexity.
-
-For migrations where the original AWS API Gateway is simply fronting Lambda functions (a very common pattern), **Azure Functions HTTP triggers are a direct equivalent**. There's no meaningful gap in capability, and HTTP triggers are included in the Consumption plan's free grant.
-
-The architecture instructions in this framework explicitly call this out: add APIM only when gateway-layer features are explicitly required. This saved the sample migration roughly $1,800/year.
-
 ---
 
 ## Phase 3: Parallel Execution
@@ -159,25 +151,23 @@ Phase 3 runs three agents concurrently. Each has a specific input/output contrac
 
 ### 3a — IaC Transformation: CloudFormation → Bicep
 
-The `@iac-transformation` agent converts the captured CloudFormation template to modular Azure Bicep using **Azure Verified Modules (AVM)** where available. The output structure is:
+The `@iac-transformation` agent converts the captured CloudFormation template to modular Azure Bicep using **Azure Verified Modules (AVM)** where available. The output follows a consistent structure regardless of the source workload:
 
 ```
 outputs/bicep-templates/
-  main.bicep              # Subscription-scoped root
+  main.bicep              # Subscription-scoped root module
   modules/
-    storage.bicep
-    functions.bicep
-    staticwebapp.bicep
-    appinsights.bicep
-    keyvault.bicep
-    rbac.bicep
+    <resource-a>.bicep    # One module per logical resource group
+    <resource-b>.bicep
+    ...
+    rbac.bicep            # Always generated — Managed Identity RBAC assignments
   parameters/
     dev.bicepparam
     staging.bicepparam
     prod.bicepparam
 ```
 
-The agent uses the **Microsoft Learn MCP server** to look up current AVM module references during generation — no hardcoded module versions.
+The exact modules generated depend on the AWS resources discovered in Phase 1 — the agent reads `aws-inventory.json` and `service-mapping.md` to determine which Azure services are needed. The agent uses the **Microsoft Learn MCP server** to look up current AVM module references during generation — no hardcoded module versions.
 
 **MCP tools declared in `iac-transformation.agent.md`:**
 
@@ -188,15 +178,13 @@ tools:
   - azure-mcp/*           # Full Azure MCP access (resource info, service lookups)
 ```
 
-### 3b — Code Refactor: Lambda → Azure Functions
+### 3b — Code Refactor: AWS SDKs → Azure SDKs
 
-The `@code-refactor` agent re-writes Python Lambda handlers to the **Azure Functions v2 decorator model**. The critical decisions here are:
+The `@code-refactor` agent re-writes AWS application code to Azure equivalents while preserving 100% of the business logic. It works on Python and Node.js source files — no IaC changes. The two things it always addresses, regardless of the source workload:
 
-**Identity**: AWS Lambda uses execution roles (IAM). Azure Functions uses **System-Assigned Managed Identity** with RBAC. The refactored code replaces all `boto3` calls with `azure-storage-blob` + `azure-identity`, using `DefaultAzureCredential` for local dev and Managed Identity in production. Zero credentials in environment variables.
+**Identity**: AWS uses IAM execution roles; Azure uses **System-Assigned Managed Identity** with RBAC. The agent replaces all AWS SDK credential patterns with `DefaultAzureCredential` — zero credentials in environment variables or code.
 
-**Pre-signed URL → SAS Token**: The pre-signed URL pattern from S3 maps cleanly to Azure Blob **SAS tokens using user-delegation keys** (generated via `get_user_delegation_key()` from `BlobServiceClient`). The client-side upload/download path is preserved — clients still talk directly to storage; the API generates short-lived tokens. The key detail: use user-delegation SAS (Managed Identity path) rather than account-key SAS.
-
-**Environment variables**: One lesson learned the hard way — `CONTAINER_NAME` is a reserved environment variable in the Azure Functions host. Renaming it to `BLOB_CONTAINER_NAME` is not optional.
+**SDK mapping**: AWS SDK calls are replaced with their Azure SDK equivalents based on the service mapping produced in Phase 2. The `aws-knowledge-mcp` and `microsoftdocs/mcp` servers are used during refactoring to look up both sides of each mapping and ensure API parity.
 
 **MCP tools declared in `code-refactor.agent.md`:**
 
@@ -215,17 +203,14 @@ tools:
 
 ### 3c — Pipeline Builder: GitHub Actions with OIDC
 
-The `@pipeline-builder-agent` generates three GitHub Actions workflows:
+The `@pipeline-builder-agent` generates GitHub Actions workflows for each deployment surface discovered in Phase 2 — infrastructure (Bicep), application code, and any static assets. The generated pipelines always follow the same non-negotiable pattern:
 
-| Workflow | Trigger | What it does |
-|---|---|---|
-| `deploy-infra.yml` | push to `main` (`bicep-templates/**`) | `az deployment sub validate` → what-if → deploy |
-| `deploy-functions.yml` | push to `main` (`azure-functions/**`) | pip install, zip deploy, smoke test, rollback on failure |
-| `deploy-static-web.yml` | push to `main` (`static-web-app/**`) | Azure/static-web-apps-deploy@v1, skip_app_build: true |
+- **Authentication**: OIDC / Workload Identity Federation throughout — no client secrets, no expiry dates, no rotation
+- **IaC deployment**: `az deployment sub validate` → what-if (surfaced as a PR comment) → deploy
+- **Application deployment**: build → package → deploy → smoke test → rollback job on failure
+- **Environment gates**: dev auto-deploys; staging requires 1 reviewer; prod requires 2 reviewers
 
-Authentication uses **OIDC / Workload Identity Federation** throughout — no client secrets, no expiry dates, no rotation. The Bicep deployment uses subscription scope (`az deployment sub create`) to handle resource group creation as part of the IaC lifecycle.
-
-The `deploy-infra.yml` what-if step is surfaced as a pull request comment when triggered from a PR, giving you a diff of planned changes before the merge button is touched. Environment gates enforce: dev auto-deploys; staging requires 1 reviewer; prod requires 2 reviewers.
+The agent reads the Phase 2 architecture design and Phase 3a Bicep output to determine the correct deployment scopes, resource names, and trigger paths — the pipeline YAML is always tailored to the specific workload, not generated from a static template.
 
 **MCP tools declared in `pipeline-builder-agent.agent.md`:**
 
@@ -333,43 +318,28 @@ The MCP servers in use:
 
 ### Managed Identity Replaces All IAM Keys
 
-AWS IAM roles and access keys are replaced — unconditionally — by **Azure System-Assigned Managed Identity** with fine-grained RBAC. The code refactor agent is instructed to fail validation if it finds any storage account keys or connection strings in the refactored output.
+AWS IAM roles and access keys are replaced — unconditionally — by **Azure System-Assigned Managed Identity** with fine-grained RBAC. The code refactor agent instructions explicitly prohibit any storage account keys or connection strings in the refactored output. The deployment validation agent checks for this as part of its 15-point checklist.
 
 ### Bicep Is Subscription-Scoped
 
 Rather than resource-group-scoped templates (which require the resource group to pre-exist), the generated Bicep uses **subscription scope**. The `main.bicep` creates the resource group as part of the deployment. This makes the templates genuinely self-contained: a fresh subscription is sufficient to run a full deployment.
 
-### The Pre-Signed URL Pattern Is Preserved
+### Agent Instructions Encode the Hard-Won Lessons
 
-This was a key architectural decision. The original AWS application used S3 pre-signed URLs so that clients upload/download directly to S3 — no proxying through the API, no Lambda bandwidth cost. This pattern maps cleanly to Azure Blob **SAS tokens with user-delegation keys**. The API generates tokens; clients use them directly against Blob Storage. The same cost and performance characteristics carry over.
+The agent instruction files in `.github/instructions/` are not just descriptions of what to do — they explicitly encode what **not** to do, based on real-world migration experience. Common pitfalls like runtime version constraints, reserved environment variable names, routing requirements for static hosting, and API equivalency gaps are all captured in the instructions so agents avoid them automatically. You don't have to discover these the hard way — the agents already know.
 
 ---
 
-## Known Gotchas — Lessons from the First Run
+## What Lives in the Agent Instructions
 
-These issues were all encountered during the first migration run. They're now baked into the agent instructions so future runs don't hit them.
+The agent instruction files (`.github/instructions/`) are where the real intellectual property of this framework lives. Each phase agent has a corresponding instruction file that goes well beyond "here's what to do" — it explicitly encodes what **not** to do, which edge cases to handle, and which Azure service constraints to be aware of.
 
-**Python version.** Azure Functions v4 supports Python 3.9, 3.10, and 3.11 only. Python 3.12 and 3.13 crash the worker with a `0xC0000005` Access Violation. Always create the venv with Python 3.11:
+For example, the code refactor instructions cover things like Azure compute runtime version constraints, reserved environment variable names that conflict with the host, and the correct identity-based patterns to use for Azure SDK calls. The IaC instructions cover AVM module selection criteria, subscription scope vs resource group scope trade-offs, and parameter file conventions. The architecture instructions explicitly call out which Azure services are optional gateway layers versus required platform components.
 
-```bash
-python3.11 -m venv .venv
-```
+None of this knowledge is hardcoded into the agents themselves — it lives in the instruction files, which means you can update them as Azure evolves, as new AVM modules ship, or as your organisation's standards change. The agents inherit the updated knowledge on the next run without any code changes.
 
-**Reserved environment variable.** `CONTAINER_NAME` is reserved by the Azure Functions host. Using it causes silent failures in environment variable binding. Rename to `BLOB_CONTAINER_NAME`.
-
-**Static Web Apps entry point.** Azure Static Web Apps requires `index.html` as the default file at the root. A standalone `app.html` is invisible without an explicit `staticwebapp.config.json` routing rule:
-
-```json
-{
-  "navigationFallback": {
-    "rewrite": "/index.html"
-  }
-}
-```
-
-**SAS token generation.** Use `get_user_delegation_key()` from `BlobServiceClient` (the Managed Identity path), not storage account keys. Account-key SAS tokens break the zero-credentials posture of the rest of the architecture.
-
-**APIM is optional.** Don't add it reflexively. HTTP triggers cover the API Gateway pattern for most workloads.
+> The instruction files in this repo reflect real-world migration experience. If you adapt this framework for your own organisation, treat the instruction files as the primary place to encode your own standards, naming conventions, and architectural guardrails.
+{: .prompt-tip }
 
 ---
 
@@ -381,13 +351,13 @@ The framework is available on GitHub and is fully open. The agents are defined a
 
 A few things I'd emphasise for anyone thinking about using or adapting this framework:
 
-**Agent instructions are the hard part.** Getting the agents to produce consistent, correct output across every run required careful iteration on the instruction files — specifying not just what to do but what *not* to do (no APIM, no account keys, no Python 3.12, no CLI inside agent flows). The instructions encode the lessons.
+**The instruction files are the primary asset.** The agents themselves are generic — what makes them produce consistent, correct output is the instruction files. Getting those right took real iteration. When you adapt this framework, the instruction files are where your organisation's standards, naming conventions, and architectural guardrails belong.
 
-**MCP quality drives output quality.** The Microsoft Learn MCP server being able to pull current AVM module references during Bicep generation is what makes the IaC output actually usable. If your MCP servers are stale or unavailable, agent output degrades.
+**MCP quality drives output quality.** The Microsoft Learn MCP server pulling current AVM module references during Bicep generation is what makes the IaC output actually usable. If your MCP servers are stale or unavailable, agent output degrades. Keep your MCP server connections healthy.
 
-**Parallelism in Phase 3 works because of output contracts.** IaC, code refactor, and pipeline builder each write to distinct output folders and have no shared state during generation. The orchestrator verifies all three before Phase 4 begins.
+**Parallelism in Phase 3 works because of output contracts.** IaC, code refactor, and pipeline builder each write to distinct output folders with no shared state. The orchestrator verifies all three sets of artefacts before Phase 4 begins — if any agent short-circuits, the validation phase doesn't run against incomplete inputs.
 
-**Validation is non-negotiable.** The 15-point checklist catches things that slip through even careful manual review — RBAC scope drift, missing purge protection on Key Vault, a smoke test endpoint that resolves to 404 because the route wasn't updated. Run it every time.
+**Validation is non-negotiable.** The 15-point checklist catches things that slip through even careful manual review — RBAC scope drift, missing Key Vault protections, security policy gaps, artefact inconsistencies across phases. Run it on every migration, every time.
 
 ---
 
