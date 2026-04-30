@@ -4,7 +4,7 @@ date: 2026-04-30 08:00:00 +1000
 categories: [Azure, Networking]
 tags: [private-dns, private-endpoints, rbac, bicep, landing-zones, networking, azure-policy]
 description: "A real-world pattern for granting developers just enough permission to manage their own private endpoint DNS records in a centralized DNS architecture — without giving them the keys to the kingdom."
-author: danidu
+author: Danidu Weerasinghe
 toc: true
 comments: true
 pin: false
