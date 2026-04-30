@@ -9,10 +9,7 @@ toc: true
 comments: true
 pin: false
 mermaid: false
-math: false
-image:
-  path: /assets/img/posts/2026-04-30-centralize-private-dns-hero.png
-  alt: "Centralized Private DNS Zone permission management in Azure Landing Zones"
+math: falseg
 ---
 
 Howdy Folks,
@@ -21,7 +18,6 @@ This one comes straight from the field. A real problem I ran into with a custome
 
 Let's dive in!
 
----
 
 ## The Setup
 
@@ -50,7 +46,6 @@ The rules were clear:
 
 This is a solid, enterprise-grade setup. The platform team controls the DNS namespace, and Azure Policy handles auto-registration. What could go wrong?
 
----
 
 ## The Problem
 
@@ -68,7 +63,6 @@ When a developer deleted a Private Endpoint, the deletion process also attempts 
 
 Every DNS-related issue meant raising a ticket and waiting for the central team to intervene. Not ideal! Developers were frustrated, and the platform team was spending time on routine DNS record management instead of higher-value work.
 
----
 
 ## The Goals
 
@@ -80,7 +74,6 @@ Before jumping to a solution, I needed to be clear on what I was trying to achie
 
 The key insight here? I needed developers to be able to **write and delete their own A-records**, but I did **not** want them to be able to **list all records in the zone** — which would give them visibility into DNS records for other teams' Private Endpoints.
 
----
 
 ## The Solution: A Custom RBAC Role
 
@@ -101,8 +94,6 @@ Microsoft.Network/privateEndpoints/privateDnsZoneGroups/read
 Microsoft.Resources/deployments/*
 Microsoft.Resources/subscriptions/resourceGroups/read
 ```
-
----
 
 ## Key Permission Breakdown
 
@@ -134,7 +125,6 @@ These allow developers to **configure and view the DNS Zone Group** on a Private
 
 These are supporting permissions needed for ARM deployments to work correctly when creating resources that span resource groups (i.e., the PE in the landing zone subscription linking to the DNS zone in the hub subscription).
 
----
 
 ## Bicep: Deploying the Custom Role Definition
 
@@ -196,7 +186,6 @@ resource roleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
 }
 ```
 
----
 
 ## How This Looks in Practice
 
@@ -212,7 +201,6 @@ Once the custom role is assigned, here's what changes for developers:
 
 The developers get exactly what they need. The platform team stops being the DNS bottleneck. And the central DNS zone remains protected. Win-win-win.
 
----
 
 ## Things to Consider
 
@@ -220,7 +208,6 @@ The developers get exactly what they need. The platform team stops being the DNS
 - **If you're using Azure Policy for auto-registration**, this role is still useful as a safety net for edge cases where policy timing causes issues or when developers work outside of IaC pipelines.
 - **Consider using Managed Identities** for CI/CD pipelines and workload identities rather than assigning this directly to individual users — it's more scalable and easier to audit.
 
----
 
 ## Useful References
 
@@ -229,7 +216,6 @@ The developers get exactly what they need. The platform team stops being the DNS
 - [Azure custom roles — Microsoft Learn](https://learn.microsoft.com/en-us/azure/role-based-access-control/custom-roles)
 - [Private Endpoint DNS zone values — Microsoft Learn](https://learn.microsoft.com/en-us/azure/private-link/private-endpoint-dns)
 
----
 
 Hope this helps someone who's been hitting the same wall! It's a fairly common pattern in enterprise Landing Zone deployments, and the solution is elegant once you find that sweet spot between `privateDnsZones/read` (zone visibility) and the absence of `privateDnsZones/*/read` (record listing).
 
