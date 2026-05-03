@@ -11,7 +11,7 @@ pin: false
 mermaid: false
 math: false
 image:
-  path: /assets/img/posts/2026-05-04-01-lz-vending.png
+  path: /assets/img/posts/landing-zone-vending-process.png
   alt: "Self-service landing zone vending pipeline — web app, GitHub, Copilot agent"
 ---
 
