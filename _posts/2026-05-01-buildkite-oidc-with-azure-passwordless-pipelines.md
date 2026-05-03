@@ -10,9 +10,6 @@ comments: true
 pin: false
 mermaid: true
 math: false
-image:
-  path: /assets/img/posts/2026-05-01-buildkite-oidc-azure-hero.png
-  alt: "Buildkite OIDC with Azure — passwordless authentication"
 ---
 
 Howdy Folks,
