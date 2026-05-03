@@ -50,18 +50,7 @@ What if we could get the form experience without the portal? That's the rabbit h
 
 Here's the pipeline at a glance:
 
-```
-┌──────────────────┐   commit JSON   ┌──────────────────┐   on push    ┌──────────────────┐
-│  Web app (form)  │ ──────────────▶ │  GitHub repo     │ ───────────▶ │  GitHub Actions  │
-│  /webapp         │                 │  json/*.json     │              │  workflow        │
-└──────────────────┘                 └──────────────────┘              └────────┬─────────┘
-                                                                                │ opens issue
-                                                                                ▼
-                                     ┌──────────────────┐   opens PR   ┌──────────────────┐
-                                     │  bicepparam/     │ ◀─────────── │  Copilot coding  │
-                                     │  *.bicepparam    │              │  agent           │
-                                     └──────────────────┘              └──────────────────┘
-```
+![Web app form for landing zone vending](/assets/img/posts/landing-zone-vending-process.png)
 
 Three components, each doing one thing well:
 
@@ -77,6 +66,9 @@ The genius bit isn't any one component — it's that **GitHub is the database, t
 ---
 
 ## Part 1 — Why Decorate Your Bicep Template (And Why It Matters Here)
+
+![Web app form for landing zone vending](/assets/img/posts/2026-05-04-01-lz-vending.png)
+
 
 Before I show the web app, I need to make a quick detour, because this whole pattern only works if your Bicep template is **introspectable**.
 
@@ -187,6 +179,8 @@ The frontend reads `/api/template`, groups the parameters into logical sections 
 
 When the user clicks **Review & submit**, the app:
 
+![Web app form for landing zone vending](/assets/img/posts/lz-vending-after-submitting.png)
+
 1. Validates client-side.
 2. Re-fetches the template (in case it changed mid-session).
 3. Re-validates server-side using the same parser.
@@ -196,11 +190,13 @@ When the user clicks **Review & submit**, the app:
 
 That commit is what triggers everything downstream.
 
-![Web app form for landing zone vending](/assets/img/posts/2026-05-04-01-lz-vending.png)
 
 ---
 
 ## Part 3 — GitHub Actions Trigger
+
+![Web app form for landing zone vending](/assets/img/posts/lz-vending-agent2.png)
+
 
 Once the JSON file lands on `main`, a GitHub Actions workflow fires. It's deliberately dumb — its only job is to **open an issue and mention `@copilot`**, which hands the work off to the Copilot coding agent.
 
@@ -253,6 +249,8 @@ Two things to call out:
 
 1. **Labels are auto-created.** Every customer hits this — your shiny workflow fails on first run because `automation` label doesn't exist. The `gh label create` step is idempotent and saves a support ticket.
 2. **No `--assignee` for Copilot.** I tried that initially and got `GraphQL: Bot does not have access to the repository (replaceActorsForAssignable)`. The default `GITHUB_TOKEN` can't assign the Copilot bot. Mentioning `@copilot` in the issue body is enough — the coding agent picks it up. If you really want assignment, you need a separate PAT.
+
+![Web app form for landing zone vending](/assets/img/posts/lz-vending-agent1.png)
 
 > The GitHub Copilot coding agent is in **public preview** as of writing. You enable it in **Settings → Code & automation → Copilot → Coding agent**. Microsoft Learn has the latest enablement guide [here](https://docs.github.com/copilot/concepts/agents/about-coding-agent). <!-- TODO: VERIFY exact link if it changes -->
 {: .prompt-warning }
