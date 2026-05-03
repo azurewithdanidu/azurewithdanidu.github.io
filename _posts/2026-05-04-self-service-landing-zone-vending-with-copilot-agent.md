@@ -15,8 +15,6 @@ image:
   alt: "Self-service landing zone vending pipeline — web app, GitHub, Copilot agent"
 ---
 
-![Self-service landing zone vending pipeline](/assets/img/posts/2026-05-04-01-lz-vending.png)
-
 Howdy Folks,
 
 It's been some time since I last delved into platform engineering territory, and this one comes straight out of a weekend hack. A few customers I've been working with have all hit the same wall — they have **beautiful, opinionated landing zone Bicep templates** authored by their platform team, but the only way to actually get a landing zone is to raise a ticket, wait for someone to hand-craft a `.bicepparam` file, and pray the values are correct.
