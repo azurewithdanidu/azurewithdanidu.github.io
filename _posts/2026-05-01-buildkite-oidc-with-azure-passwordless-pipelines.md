@@ -93,7 +93,6 @@ Honestly, the answer depends on how your platform team thinks about isolation. H
 - You have very few users, full trust internally, and you want one credential to rule them all
 - You're doing a quick proof-of-concept
 
-> **Don't use `organization_id` if you accept public pull requests on any pipeline.** Anyone who can open a PR could potentially trigger a build that requests an OIDC token. More on this risk in the [trade-offs](#the-trade-offs-nobody-puts-on-the-marketing-page) section below.
 {: .prompt-warning }
 
 ---
