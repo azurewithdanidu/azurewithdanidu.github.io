@@ -1,6 +1,6 @@
 ---
 title: "Self-Service Landing Zone Vending — A Sample Web App + GitHub Copilot Agent Pattern"
-date: 2026-05-04 09:00:00 +1000
+date: 2026-05-04 01:00:00 +1000
 categories: [Azure, IaC]
 tags: [landing-zones, bicep, github-copilot, vending, self-service, automation, platform-engineering]
 description: "How to turn a single Bicep template into a self-service landing zone vending experience — with a small web app for the form, GitHub for storage, and a Copilot coding agent that opens the PR for you."
@@ -11,7 +11,7 @@ pin: false
 mermaid: false
 math: false
 image:
-  path: /assets/img/posts/2026-05-04 01-lz-vending.png
+  path: /assets/img/posts/2026-05-04-01-lz-vending.png
   alt: "Self-service landing zone vending pipeline — web app, GitHub, Copilot agent"
 ---
 
