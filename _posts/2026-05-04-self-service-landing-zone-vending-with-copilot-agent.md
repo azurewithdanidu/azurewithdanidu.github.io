@@ -27,7 +27,7 @@ In this post, I'll walk you through a small sample app I built that turns that w
 
 The full code is on GitHub: [azurewithdanidu/landing-zone-deployment-agent](https://github.com/azurewithdanidu/landing-zone-deployment-agent). Feel free to clone it, rip it apart, and bend it to whatever IaC you already have. **The pattern is the point — not the specific Bicep template.**
 
-Let's dive in!
+Let's dive in.
 
 ---
 
