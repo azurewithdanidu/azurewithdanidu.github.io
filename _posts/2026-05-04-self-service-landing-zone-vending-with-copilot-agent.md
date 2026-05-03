@@ -15,7 +15,7 @@ image:
   alt: "Self-service landing zone vending pipeline — web app, GitHub, Copilot agent"
 ---
 
-![Self-service landing zone vending pipeline](/assets/img/posts/2026-05-04 01-lz-vending.png)
+![Self-service landing zone vending pipeline](/assets/img/posts/2026-05-04-01-lz-vending.png)
 
 Howdy Folks,
 
@@ -198,7 +198,7 @@ When the user clicks **Review & submit**, the app:
 
 That commit is what triggers everything downstream.
 
-![Web app form for landing zone vending](/assets/img/posts/2026-05-04 01-lz-vending.png)
+![Web app form for landing zone vending](/assets/img/posts/2026-05-04-01-lz-vending.png)
 
 ---
 
