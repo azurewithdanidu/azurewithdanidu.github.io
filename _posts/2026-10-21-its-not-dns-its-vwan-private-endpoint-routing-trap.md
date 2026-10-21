@@ -15,8 +15,6 @@ image:
   alt: "Asymmetric routing between an on-premises network and an Azure Private Endpoint behind a Virtual WAN hub with Routing Intent"
 ---
 
--->
-
 Howdy Folks,
 
 Let's paint a realistic picture. You've got a customer with a hybrid setup — an AWS VM, connected through a **Transit Gateway**, reaching into Azure over **ExpressRoute**. Somewhere on the Azure side, there's a **Storage Account** locked down behind a **Private Endpoint**. Simple enough, right? Private Link exists specifically so this kind of cross-cloud, cross-network access can happen securely without anything touching the public internet.
@@ -46,24 +44,24 @@ Here's the environment we were troubleshooting:
 
 ```
                          ┌─────────────────────────────┐
-                         │   Azure Virtual WAN Hub      │
-  AWS VM                 │   (Secured Hub)              │
-    │                    │                              │
-    │ Transit Gateway    │   ┌───────────────────────┐  │
-    │                    │   │   Azure Firewall       │  │
-    └── ExpressRoute ────┼──▶│  (Routing Intent next  │  │
-                         │   │   hop for RFC1918)      │  │
-                         │   └───────────────────────┘  │
-                         │              │                │
-                         └──────────────┼────────────────┘
+                         │   Azure Virtual WAN Hub     │
+  AWS VM                 │   (Secured Hub)             │
+    │                    │                             │
+    │ Transit Gateway    │   ┌───────────────────────┐ │
+    │                    │   │   Azure Firewall      │ │
+    └── ExpressRoute ───┼──▶ │  (Routing Intent next│ │
+                         │   │   hop for RFC1918)    | │ 
+                         │   └───────────────────────┘ │
+                         │              │              │
+                         └──────────────┼──────────────┘
                                         │
                                         ▼
                          ┌─────────────────────────────┐
-                         │   Spoke VNet                 │
-                         │   ┌───────────────────────┐  │
-                         │   │ Private Endpoint        │ │
-                         │   │ (Storage Account)       │ │
-                         │   └───────────────────────┘  │
+                         │   Spoke VNet                │
+                         │   ┌───────────────────────  │
+                         │   │ Private Endpoint      │ │
+                         │   │ (Storage Account)     │ │
+                         │   └───────────────────────┘ │
                          └─────────────────────────────┘
 ```
 
@@ -141,9 +139,9 @@ AFTER (fixed — symmetric routing)
 ======================================
 
   AWS VM                Azure Firewall              Spoke VNet (PE)
-    │                        │                            │
+    │                         │                             │
     │ ── Forward ──────────▶ │ ── Forward ──────────────▶ │
-    │                        │                            │
+    │                         │                             │
     │ ◀── Return ─────────── │ ◀── Return ──────────────  │
     ▼                        ▼                            ▼
   Connects                Inspects both legs           Responds
