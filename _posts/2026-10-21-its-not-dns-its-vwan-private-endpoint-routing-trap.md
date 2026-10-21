@@ -15,10 +15,6 @@ image:
   alt: "Asymmetric routing between an on-premises network and an Azure Private Endpoint behind a Virtual WAN hub with Routing Intent"
 ---
 
-<!-- TODO: Generate hero image at /assets/img/posts/2026-10-21-vwan-private-endpoint-routing-trap.png using the prompt below (DALL-E 3 / Bing Image Creator / Midjourney), then remove this comment.
-
-IMAGE PROMPT:
-
 -->
 
 Howdy Folks,
@@ -165,6 +161,9 @@ This also explains the "ping shows up, nothing else does" symptom: general ICMP 
 ## The Fix: Route Table Network Policies on the Private Endpoint Subnet
 
 The official guidance is to enable **Route Table network policies** on the subnet where your private endpoints are deployed. This overrides the implicit "always bypass, always direct" /32 behavior and makes the private endpoint's routing subject to the subnet's associated route table — which, in a Routing Intent-enabled hub, should already have that RFC1918 default route pointing at the firewall.
+
+![Edit subnet blade in the Azure portal showing the Network Policy for Private Endpoints section, with Private endpoint network policy set to Disabled](/images/2026-10-21-private-endpoint-network-policy-portal.png)
+_The broken state: `Private endpoint network policy` is set to `Disabled` on the subnet hosting the private endpoint — this is what lets on-premises traffic bypass the firewall entirely._
 
 > **Important**: Per Microsoft's own documentation, adding /32 routes for your private endpoint IPs into the Routing Intent **Private Traffic** text box does **not** fix this. That configuration affects the hub's routing behavior for traffic in general — it does not override the private endpoint subnet's own bypass behavior. You have to fix this at the subnet level.
 {: .prompt-warning }
