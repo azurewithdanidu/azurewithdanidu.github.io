@@ -8,7 +8,7 @@
 * Audience: Intermediate to advanced.
 * Scope: One post.
 * Code: Includes the Copilot CLI install flow and repository validation commands.
-* Diagram: Includes a Mermaid quality-gate diagram and a TODO placeholder for the hero image.
+* Diagram: Includes a Mermaid quality-gate diagram; no images are used.
 * References: Links to the repository and official platform/spec documentation; no talk link.
 
 ## Checklist
@@ -19,7 +19,7 @@
 * [x] Technical claims were checked against official platform documentation and repository sources.
 * [x] Includes direct documentation links.
 * [x] Code fences specify languages.
-* [x] Image uses the date-prefixed path pattern and includes a TODO placeholder.
+* [x] No image references or image placeholders are included.
 * [x] Explains trade-offs and distinguishes the published Agent Plugins specification from product GA status.
 * [x] Matches the requested intermediate-to-advanced audience.
 * [x] Uses Danidu's conversational voice and ends with encouragement.
@@ -34,4 +34,4 @@
 
 ## Status
 
-Complete. The post is ready for review; replace the hero-image placeholder before publishing. Cross-client runtime installation tests remain outside this writing task.
+Complete. The post is ready for review. Cross-client runtime installation tests remain outside this writing task.

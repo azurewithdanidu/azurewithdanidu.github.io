@@ -8,7 +8,7 @@
 * Audience: Intermediate to advanced.
 * Scope: One standalone post.
 * Code: Keep practical CLI and repository script examples.
-* Diagram: Add a Mermaid diagram for the CI, Copilot review, and CODEOWNERS gate; add a hero-image placeholder because no image was supplied.
+* Diagram: Add a Mermaid diagram for the CI, Copilot review, and CODEOWNERS gate.
 * References: The repository plus official documentation links for platform-specific facts. No talk link for now.
 * Date: 2026-11-12, Melbourne timezone (`+1100`).
 
@@ -38,4 +38,3 @@
 * Categories: `[GitHub, Copilot]`
 * Tags: `[github-copilot, claude-code, cursor, agent-plugins, ai-governance, platform-engineering]`
 * Mermaid gate diagram; set `mermaid: true`.
-* Hero image placeholder: `/assets/img/posts/2026-11-12-agentz-marketplace-quality-gate.png`.
