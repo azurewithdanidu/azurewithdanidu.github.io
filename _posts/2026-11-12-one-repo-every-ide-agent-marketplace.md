@@ -10,13 +10,7 @@ comments: true
 pin: false
 mermaid: true
 math: false
-image:
-  path: /assets/img/posts/2026-11-12-agentz-marketplace-quality-gate.png
-  alt: "The agentz marketplace quality gate, from CI checks to Copilot review and owner approval"
 ---
-
-<!-- TODO: Replace this placeholder with a hero image showing the agentz marketplace and its quality gate. -->
-![The agentz marketplace quality gate](/assets/img/posts/2026-11-12-agentz-marketplace-quality-gate.png)
 
 Howdy Folks,
 
