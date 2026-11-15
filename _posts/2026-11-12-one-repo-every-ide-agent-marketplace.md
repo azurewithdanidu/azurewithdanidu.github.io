@@ -10,6 +10,9 @@ comments: true
 pin: false
 mermaid: true
 math: false
+image:
+  path: /images/One%20Repo,%20Multiple%20IDEs.png
+  alt: "One repository serving agent plugins across multiple IDEs"
 ---
 
 Howdy Folks,
