@@ -15,10 +15,12 @@ tags:
   - crs
   - bicep
   - false-positives
+image:
+  path: /images/Azure_WAF_security_shield_banner_12bbbd61.jpg
+  alt: "Azure Application Gateway WAF exceptions shield and rule-bypass flow"
 ---
 
-<!-- TODO: Add hero image - suggested: architecture showing a request flowing through WAF with one rule bypassed via an exception -->
-![Application Gateway WAF Exceptions Overview](/images/appgw-exceptions.png)
+![Azure Application Gateway WAF exceptions shield and rule-bypass flow](/images/Azure_WAF_security_shield_banner_12bbbd61.jpg)
 
 Howdy Folks,
 
